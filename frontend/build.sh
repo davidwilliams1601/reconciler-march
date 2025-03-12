@@ -13,19 +13,15 @@ echo "NPM version: $(npm -v)"
 
 # Clean up any previous builds
 echo "Cleaning up..."
-rm -rf /opt/render/project/src/frontend/build /opt/render/project/src/frontend/node_modules/.cache
+rm -rf build node_modules/.cache
 
 # Remove node_modules
 echo "Removing node_modules..."
-rm -rf /opt/render/project/src/frontend/node_modules
+rm -rf node_modules
 
 # Clean npm cache
 echo "Cleaning npm cache..."
 npm cache clean --force
-
-# Navigate to frontend directory
-echo "Changing to frontend directory..."
-cd /opt/render/project/src/frontend
 
 # Install dependencies
 echo "Installing dependencies..."

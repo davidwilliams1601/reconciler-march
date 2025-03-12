@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Invoice</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background: white;
+        }
+        .invoice {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 30px;
+            border: 1px solid #ddd;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .company-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1976d2;
+        }
+        .invoice-details {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        .invoice-to {
+            margin-bottom: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f5f5f5;
+        }
+        .total {
+            text-align: right;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice">
+        <div class="header">
+            <div class="company-name">Tech Solutions Ltd</div>
+            <div>123 Business Street</div>
+            <div>London, UK SW1A 1AA</div>
+            <div>Phone: +44 20 1234 5678</div>
+        </div>
+
+        <div class="invoice-details">
+            <div>
+                <strong>Invoice #:</strong> INV-2024-001<br>
+                <strong>Date:</strong> 15/03/2024<br>
+                <strong>Due Date:</strong> 14/04/2024
+            </div>
+            <div>
+                <strong>From:</strong> Tech Solutions Ltd<br>
+                <strong>VAT:</strong> GB123456789
+            </div>
+        </div>
+
+        <div class="invoice-to">
+            <strong>Bill To:</strong><br>
+            Acme Corporation<br>
+            456 Client Road<br>
+            Manchester, UK M1 1AA
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Unit Price</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Web Development Services</td>
+                    <td>80</td>
+                    <td>£75.00</td>
+                    <td>£6,000.00</td>
+                </tr>
+                <tr>
+                    <td>Cloud Hosting (Monthly)</td>
+                    <td>1</td>
+                    <td>£299.00</td>
+                    <td>£299.00</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="total">
+            <div>Subtotal: £6,299.00</div>
+            <div>VAT (20%): £1,259.80</div>
+            <div>Total: £7,558.80</div>
+        </div>
+    </div>
+</body>
+</html> 

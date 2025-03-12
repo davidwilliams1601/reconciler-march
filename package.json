@@ -1,0 +1,27 @@
+{
+  "name": "invoice-reconciliation",
+  "version": "1.0.0",
+  "description": "Invoice Reconciliation Application",
+  "main": "index.js",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "scripts": {
+    "install-backend": "cd backend && npm install",
+    "install-frontend": "cd frontend && npm install",
+    "build-frontend": "cd frontend && npm run build",
+    "start-backend": "cd backend && node index.js",
+    "deploy": "npm run install-frontend && npm run build-frontend && npm run install-backend",
+    "start": "cd backend && node index.js",
+    "dev": "cd backend && npm run dev",
+    "build": "npm run install-frontend && npm run build-frontend"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "mongoose": "^7.5.0",
+    "body-parser": "^1.20.2",
+    "axios": "^1.4.0"
+  }
+} 

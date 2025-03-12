@@ -101,6 +101,28 @@ The application is deployed using Render:
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
+## Branching Strategy
+
+We follow a simplified Git flow with two main branches:
+
+- `main`: Production-ready code. Protected branch that requires pull request reviews.
+- `development`: Main development branch where feature branches are merged.
+
+### Branch Naming Convention
+
+- Feature branches: `feature/feature-name`
+- Bug fixes: `fix/bug-name`
+- Hotfixes: `hotfix/issue-name`
+- Releases: `release/version-number`
+
+### Development Workflow
+
+1. Create a new feature branch from `development`
+2. Develop and test your changes
+3. Submit a pull request to merge into `development`
+4. After review and approval, changes are merged into `development`
+5. Periodically, `development` is merged into `main` through a release process
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details. 

@@ -1,7 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import authReducer from './slices/authSlice';
-import invoiceReducer from './slices/invoiceSlice';
 import settingsReducer from './slices/settingsSlice';
 
 // Import reducers here
@@ -11,8 +10,7 @@ import settingsReducer from './slices/settingsSlice';
 export const store = configureStore({
   reducer: {
     auth: authReducer,
-    invoices: invoiceReducer,
-    settings: settingsReducer,
+    settings: settingsReducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

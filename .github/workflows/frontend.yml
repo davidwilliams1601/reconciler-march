@@ -1,0 +1,71 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: [ main, development ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend.yml'
+  pull_request:
+    branches: [ main, development ]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend.yml'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: './frontend/package-lock.json'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Check types
+      run: npm run tsc --noEmit
+
+    - name: Run ESLint
+      run: npm run lint
+
+    - name: Run tests
+      run: npm test -- --coverage --watchAll=false
+
+    - name: Build
+      run: npm run build
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v3
+      if: github.ref == 'refs/heads/main'
+      with:
+        name: frontend-build
+        path: frontend/build/
+
+  deploy:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Deploy to Render
+      env:
+        RENDER_TOKEN: ${{ secrets.RENDER_TOKEN }}
+        RENDER_SERVICE_ID: ${{ secrets.RENDER_FRONTEND_SERVICE_ID }}
+      run: |
+        curl -X POST "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys" \
+          -H "Authorization: Bearer $RENDER_TOKEN" 

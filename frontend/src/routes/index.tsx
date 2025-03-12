@@ -4,7 +4,6 @@ import Layout from '../components/Layout';
 
 // Lazy load pages
 const Dashboard = React.lazy(() => import('../pages/Dashboard'));
-const Invoices = React.lazy(() => import('../pages/Invoices'));
 const Settings = React.lazy(() => import('../pages/Settings'));
 const Login = React.lazy(() => import('../pages/Login'));
 
@@ -23,12 +22,6 @@ const AppRoutes: React.FC = () => {
             path="/"
             element={
               isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />
-            }
-          />
-          <Route
-            path="/invoices"
-            element={
-              isAuthenticated ? <Invoices /> : <Navigate to="/login" replace />
             }
           />
           <Route

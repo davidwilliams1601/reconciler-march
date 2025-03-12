@@ -18,7 +18,6 @@ import {
 import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
-  Description as InvoiceIcon,
   Settings as SettingsIcon,
   Logout as LogoutIcon,
 } from '@mui/icons-material';
@@ -47,7 +46,6 @@ const Layout: React.FC = () => {
 
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'Invoices', icon: <InvoiceIcon />, path: '/invoices' },
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
   ];
 

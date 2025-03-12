@@ -1,7 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const path = require('path');
 const dotenv = require('dotenv');
 const invoiceRoutes = require('./routes/invoiceRoutes');
 const authRoutes = require('./routes/authRoutes');
@@ -51,15 +50,6 @@ app.use((req, res, next) => {
 
 app.use(cors(corsOptions));
 
-// Serve static files first (before API routes)
-if (process.env.NODE_ENV === 'production') {
-    // Serve static files from the React app
-    app.use(express.static(path.join(__dirname, '../frontend/build'), {
-        maxAge: '1y',
-        etag: true
-    }));
-}
-
 // API Routes
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/invoices', invoiceRoutes);
@@ -72,26 +62,27 @@ app.get('/api/test', (req, res) => {
     res.json({ message: 'Server is working!' });
 });
 
+// Root route for health check
+app.get('/', (req, res) => {
+    res.json({ 
+        status: 'healthy',
+        message: 'Reconciler API is running',
+        version: '1.0.0'
+    });
+});
+
+// Handle 404 for API routes
+app.use('/api/*', (req, res) => {
+    res.status(404).json({ message: 'API endpoint not found' });
+});
+
 // Handle all other routes
-if (process.env.NODE_ENV === 'production') {
-    app.get('*', function(req, res) {
-        // Don't handle API routes here
-        if (req.path.startsWith('/api/')) {
-            return res.status(404).json({ message: 'API endpoint not found' });
-        }
-        
-        console.log('Serving index.html for path:', req.path);
-        res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
+app.use('*', (req, res) => {
+    res.status(404).json({ 
+        message: 'Not Found',
+        note: 'This is an API server. For the frontend application, please visit https://reconciler-frontend.onrender.com'
     });
-} else {
-    app.use(express.static(path.join(__dirname, '../frontend/public')));
-    app.get('*', function(req, res) {
-        if (req.path.startsWith('/api/')) {
-            return res.status(404).json({ message: 'API endpoint not found' });
-        }
-        res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
-    });
-}
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -102,19 +93,25 @@ app.use((err, req, res, next) => {
 // Connect to MongoDB and start server
 const PORT = process.env.PORT || 4001;
 
+// Enhanced error handling for MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 })
 .then(() => {
     console.log('MongoDB Connected Successfully');
+    console.log('Connection Details:');
+    console.log('- Database:', mongoose.connection.name);
+    console.log('- Host:', mongoose.connection.host);
     
-    const server = app.listen(PORT, () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
         console.log(`Server running on port ${PORT}`);
         console.log(`Environment: ${process.env.NODE_ENV}`);
+        console.log(`CORS origins:`, corsOptions.origin);
     });
 
     server.on('error', (error) => {
+        console.error('Server error:', error);
         if (error.syscall !== 'listen') {
             throw error;
         }
@@ -132,8 +129,32 @@ mongoose.connect(process.env.MONGODB_URI, {
                 throw error;
         }
     });
+
+    // Handle process termination
+    process.on('SIGTERM', () => {
+        console.log('SIGTERM received. Shutting down gracefully...');
+        server.close(() => {
+            console.log('Server closed');
+            mongoose.connection.close(false, () => {
+                console.log('MongoDB connection closed');
+                process.exit(0);
+            });
+        });
+    });
 })
 .catch(err => {
-    console.error('MongoDB connection error:', err.message);
+    console.error('MongoDB connection error details:');
+    console.error('- Message:', err.message);
+    console.error('- Code:', err.code);
+    console.error('- Stack:', err.stack);
+    if (process.env.MONGODB_URI) {
+        // Log a sanitized version of the connection string (hiding credentials)
+        const sanitizedUri = process.env.MONGODB_URI.replace(
+            /(mongodb(?:\+srv)?:\/\/)([^:]+):([^@]+)@/,
+            '$1[USERNAME]:[PASSWORD]@'
+        );
+        console.error('- Connection String (sanitized):', sanitizedUri);
+    }
+    console.error('- Full Error Object:', JSON.stringify(err, null, 2));
     process.exit(1);
 }); 

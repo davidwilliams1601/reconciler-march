@@ -33,7 +33,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "clean": "rimraf build node_modules/.cache node_modules",
+    "clean": "npx rimraf build node_modules/.cache node_modules",
     "prebuild": "npm run clean",
     "build": "CI=false GENERATE_SOURCEMAP=false react-scripts build",
     "deploy": "npm install && npm run clean && npm run build",

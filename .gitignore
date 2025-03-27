@@ -36,4 +36,8 @@ logs
 
 # Misc
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# Sensitive files
+backend/config/google-vision-key.json
+backend/config/*.json 

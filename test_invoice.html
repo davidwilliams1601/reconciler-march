@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+        }
+        .invoice-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+        }
+        .company-details {
+            text-align: right;
+        }
+        .invoice-details {
+            margin-bottom: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f8f8f8;
+        }
+        .total {
+            text-align: right;
+            font-size: 1.2em;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-header">
+        <div>
+            <h1>INVOICE</h1>
+            <p>Invoice #: INV-2024-001</p>
+            <p>Date: March 24, 2024</p>
+        </div>
+        <div class="company-details">
+            <h2>Tech Solutions Ltd</h2>
+            <p>123 Business Street</p>
+            <p>London, UK SW1A 1AA</p>
+            <p>Phone: +44 20 1234 5678</p>
+        </div>
+    </div>
+
+    <div class="invoice-details">
+        <h3>Bill To:</h3>
+        <p>Client Company Name</p>
+        <p>456 Client Road</p>
+        <p>Manchester, UK M1 1AA</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Software Development Services</td>
+                <td>80</td>
+                <td>£75.00</td>
+                <td>£6,000.00</td>
+            </tr>
+            <tr>
+                <td>Cloud Infrastructure Setup</td>
+                <td>1</td>
+                <td>£1,500.00</td>
+                <td>£1,500.00</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="total">
+        <p>Subtotal: £7,500.00</p>
+        <p>VAT (20%): £1,500.00</p>
+        <h3>Total: £9,000.00</h3>
+    </div>
+
+    <div class="payment-details">
+        <h3>Payment Details:</h3>
+        <p>Bank: Example Bank</p>
+        <p>Account: 12345678</p>
+        <p>Sort Code: 12-34-56</p>
+        <p>Due Date: April 23, 2024</p>
+    </div>
+</body>
+</html> 

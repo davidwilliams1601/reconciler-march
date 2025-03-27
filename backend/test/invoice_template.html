@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Invoice</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+        .invoice-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .invoice-details {
+            margin-bottom: 30px;
+        }
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        .invoice-table th, .invoice-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .invoice-total {
+            text-align: right;
+            font-weight: bold;
+        }
+        .invoice-footer {
+            margin-top: 50px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-header">
+        <h1>INVOICE</h1>
+        <p>Invoice Number: INV-2024-001</p>
+        <p>Date: 22/03/2024</p>
+    </div>
+
+    <div class="invoice-details">
+        <p><strong>From:</strong> Test Vendor Ltd</p>
+        <p><strong>To:</strong> Your Company Name</p>
+    </div>
+
+    <table class="invoice-table">
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Quantity</th>
+                <th>Unit Price</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Consulting Services</td>
+                <td>10</td>
+                <td>£100.00</td>
+                <td>£1,000.00</td>
+            </tr>
+            <tr>
+                <td>Software Development</td>
+                <td>5</td>
+                <td>£150.00</td>
+                <td>£750.00</td>
+            </tr>
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="3" class="invoice-total">Total Amount:</td>
+                <td class="invoice-total">£1,750.00</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="invoice-footer">
+        <p>Please make payment to:</p>
+        <p>Bank: Test Bank</p>
+        <p>Account: 12345678</p>
+        <p>Sort Code: 12-34-56</p>
+        <p>Reference: INV-2024-001</p>
+    </div>
+</body>
+</html> 

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Bank Statement</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .statement {
+            border: 1px solid #000;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .account-info {
+            margin-bottom: 30px;
+        }
+        .transaction {
+            border-bottom: 1px solid #ccc;
+            padding: 10px 0;
+        }
+        .transaction:last-child {
+            border-bottom: none;
+        }
+        .date {
+            color: #666;
+        }
+        .amount {
+            font-weight: bold;
+        }
+        .debit {
+            color: red;
+        }
+        .credit {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <div class="statement">
+        <div class="header">
+            <h1>Bank Statement</h1>
+            <p>Account: 1234-5678-9012-3456</p>
+            <p>Period: 01/03/2024 - 21/03/2024</p>
+        </div>
+        <div class="account-info">
+            <p><strong>Account Holder:</strong> Your Company Name</p>
+            <p><strong>Sort Code:</strong> 12-34-56</p>
+            <p><strong>Account Number:</strong> 12345678</p>
+        </div>
+        <div class="transactions">
+            <div class="transaction">
+                <span class="date">21/03/2024</span>
+                <span class="description">Test Vendor Ltd - Invoice INV-2024-001</span>
+                <span class="amount debit">-£1,234.56</span>
+            </div>
+            <div class="transaction">
+                <span class="date">20/03/2024</span>
+                <span class="description">Salary Payment</span>
+                <span class="amount debit">-£5,000.00</span>
+            </div>
+            <div class="transaction">
+                <span class="date">19/03/2024</span>
+                <span class="description">Client Payment - Project A</span>
+                <span class="amount credit">£3,000.00</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

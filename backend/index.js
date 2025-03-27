@@ -91,12 +91,15 @@ app.use((err, req, res, next) => {
 });
 
 // Connect to MongoDB and start server
-const PORT = process.env.PORT || 4001;
+const PORT = 5001; // Force port 5001
 
 // Enhanced error handling for MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
-    useUnifiedTopology: true
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 10000, // Timeout after 10s instead of 30s
+    socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
+    family: 4 // Use IPv4, skip trying IPv6
 })
 .then(() => {
     console.log('MongoDB Connected Successfully');
@@ -131,14 +134,13 @@ mongoose.connect(process.env.MONGODB_URI, {
     });
 
     // Handle process termination
-    process.on('SIGTERM', () => {
+    process.on('SIGTERM', async () => {
         console.log('SIGTERM received. Shutting down gracefully...');
-        server.close(() => {
+        server.close(async () => {
             console.log('Server closed');
-            mongoose.connection.close(false, () => {
-                console.log('MongoDB connection closed');
-                process.exit(0);
-            });
+            await mongoose.connection.close();
+            console.log('MongoDB connection closed');
+            process.exit(0);
         });
     });
 })

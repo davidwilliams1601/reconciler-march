@@ -8,15 +8,28 @@ const settingsRoutes = require('./routes/settingsRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const xeroRoutes = require('./routes/xeroRoutes');
 
-// Load environment variables
-dotenv.config();
+// Load environment variables based on environment
+if (process.env.NODE_ENV === 'production') {
+    dotenv.config({ path: '.env.production' });
+} else {
+    dotenv.config();
+}
 
 // Debug environment variables
 console.log('Environment Variables:');
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('PORT:', process.env.PORT);
-console.log('MONGODB_URI exists:', !!process.env.MONGODB_URI);
+console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'exists' : 'missing');
 console.log('CORS_ORIGIN:', process.env.CORS_ORIGIN);
+
+// Validate required environment variables
+const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+    console.error('Missing required environment variables:', missingEnvVars.join(', '));
+    process.exit(1);
+}
 
 const app = express();
 

@@ -8,17 +8,31 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 4001
+        value: 5001
       - key: MONGODB_URI
-        sync: false
+        value: mongodb+srv://davidwilliams1602:Carolinejean1983@clusterrecon.92y8e.mongodb.net/invoice_reconciliation?retryWrites=true&w=majority&appName=Clusterrecon
       - key: JWT_SECRET
-        sync: false
+        value: your-secure-jwt-secret-here
       - key: CORS_ORIGIN
         value: https://reconciler-frontend.onrender.com
+      - key: GOOGLE_VISION_API_KEY
+        sync: false
+      - key: XERO_CLIENT_ID
+        sync: false
+      - key: XERO_CLIENT_SECRET
+        sync: false
+      - key: XERO_TENANT_ID
+        sync: false
+      - key: DEXT_API_KEY
+        sync: false
+      - key: DEXT_CLIENT_ID
+        sync: false
+      - key: DEXT_CLIENT_SECRET
+        sync: false
 
   - type: static
     name: reconciler-frontend
-    rootDir: frontend
+    rootDir: frontend-new
     buildCommand: npm install && npm run build
     publishPath: build
     envVars:

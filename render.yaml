@@ -33,6 +33,7 @@ services:
   - type: static
     name: reconciler-frontend
     rootDir: frontend-new
+    nodeVersion: 18.17.1
     buildCommand: npm install && npm run build
     publishPath: build
     envVars:

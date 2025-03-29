@@ -35,7 +35,7 @@ services:
     rootDir: frontend-new
     env: node
     nodeVersion: 18.17.1
-    buildCommand: ./build.sh
+    buildCommand: npm run deploy
     publishPath: build
     envVars:
       - key: NODE_ENV

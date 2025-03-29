@@ -34,12 +34,7 @@ services:
     name: reconciler-frontend
     rootDir: frontend-new
     nodeVersion: 18.17.1
-    buildCommand: |
-      echo "Starting build process..."
-      which npm
-      npm --version
-      npm install
-      npm run build
+    buildCommand: ./build.sh
     publishPath: build
     envVars:
       - key: NODE_ENV

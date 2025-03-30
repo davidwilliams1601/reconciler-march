@@ -6,12 +6,15 @@ set -e
 echo "Starting Render build process..."
 echo "Current directory: $(pwd)"
 
+# Print environment variables for debugging
+echo "REACT_APP_API_URL: $REACT_APP_API_URL"
+
 # Install dependencies
 echo "Installing dependencies..."
 npm install
 
-# Run the build
-echo "Running build..."
-npm run build
+# Build the application
+echo "Building the application..."
+REACT_APP_API_URL=$REACT_APP_API_URL npm run build
 
-echo "Build process completed." 
+echo "Build completed successfully!" 

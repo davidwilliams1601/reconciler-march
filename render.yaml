@@ -14,7 +14,7 @@ services:
       - key: JWT_SECRET
         value: your-secure-jwt-secret-here
       - key: CORS_ORIGIN
-        value: https://reconciler-frontend.onrender.com
+        value: https://frontend-new-er0k.onrender.com
       - key: GOOGLE_VISION_API_KEY
         sync: false
       - key: XERO_CLIENT_ID
@@ -43,7 +43,7 @@ services:
       - key: CI
         value: false
       - key: REACT_APP_API_URL
-        value: https://reconciler-backend.onrender.com
+        value: https://reconciler-backend.onrender.com/api
     routes:
       - type: rewrite
         source: /*

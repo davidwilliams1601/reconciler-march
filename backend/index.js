@@ -41,18 +41,23 @@ const corsOptions = {
     origin: process.env.NODE_ENV === 'production'
         ? [
             'https://frontend-new-er0k.onrender.com',
-            'https://reconciler-backend.onrender.com',
             'https://frontend-new-er0k.onrender.com/',
-            'https://reconciler-backend.onrender.com/',
-            'https://reconciler-backend.onrender.com/api'
+            'https://frontend-new-er0k.onrender.com:443'
           ]
         : ['http://localhost:3000', 'http://localhost:4001'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
     exposedHeaders: ['Content-Range', 'X-Content-Range'],
-    maxAge: 600 // 10 minutes
+    maxAge: 600, // 10 minutes
+    optionsSuccessStatus: 204
 };
+
+// Apply CORS middleware first
+app.use(cors(corsOptions));
+
+// Add preflight handling for all routes
+app.options('*', cors(corsOptions));
 
 // Add security headers middleware
 app.use((req, res, next) => {
@@ -64,7 +69,7 @@ app.use((req, res, next) => {
         "style-src 'self' 'unsafe-inline' data:; " +
         "img-src 'self' data: blob:; " +
         "font-src 'self' data:; " +
-        "connect-src 'self' http://localhost:5001 https://reconciler-backend.onrender.com https://frontend-new-er0k.onrender.com;"
+        "connect-src 'self' http://localhost:5001 https://frontend-new-er0k.onrender.com https://frontend-new-er0k.onrender.com:443;"
     );
     
     // Other security headers
@@ -82,12 +87,6 @@ app.use((req, res, next) => {
     console.log('Environment:', process.env.NODE_ENV);
     next();
 });
-
-// Apply CORS middleware before routes
-app.use(cors(corsOptions));
-
-// Add preflight handling for all routes
-app.options('*', cors(corsOptions));
 
 // API Routes
 app.use('/api/dashboard', dashboardRoutes);

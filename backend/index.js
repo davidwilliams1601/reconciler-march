@@ -43,14 +43,15 @@ const corsOptions = {
             'https://frontend-new-er0k.onrender.com',
             'https://reconciler-backend.onrender.com',
             'https://frontend-new-er0k.onrender.com/',
-            'https://reconciler-backend.onrender.com/'
+            'https://reconciler-backend.onrender.com/',
+            'https://reconciler-backend.onrender.com/api'
           ]
         : ['http://localhost:3000', 'http://localhost:4001'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
-    exposedHeaders: ['Content-Length', 'X-Requested-With'],
-    optionsSuccessStatus: 200
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    maxAge: 600 // 10 minutes
 };
 
 // Add security headers middleware
@@ -82,7 +83,11 @@ app.use((req, res, next) => {
     next();
 });
 
+// Apply CORS middleware before routes
 app.use(cors(corsOptions));
+
+// Add preflight handling for all routes
+app.options('*', cors(corsOptions));
 
 // API Routes
 app.use('/api/dashboard', dashboardRoutes);

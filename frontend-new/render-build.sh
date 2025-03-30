@@ -6,7 +6,8 @@ set -e
 echo "Starting Render build process..."
 echo "Current directory: $(pwd)"
 
-# Print environment variables for debugging
+# Set API URL explicitly
+export REACT_APP_API_URL="https://reconciler-backend.onrender.com/api"
 echo "REACT_APP_API_URL: $REACT_APP_API_URL"
 
 # Install dependencies

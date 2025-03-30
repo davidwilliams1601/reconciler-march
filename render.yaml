@@ -35,12 +35,7 @@ services:
     rootDir: frontend-new
     env: node
     nodeVersion: 18.17.1
-    buildCommand: |
-      echo "Starting build process..."
-      echo "Node version: $(node -v)"
-      echo "NPM version: $(npm -v)"
-      npm install
-      npm run build
+    buildCommand: ./build.sh
     publishPath: build
     envVars:
       - key: NODE_ENV

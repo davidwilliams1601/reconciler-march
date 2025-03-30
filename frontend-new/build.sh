@@ -6,28 +6,24 @@ set -e
 echo "Starting build process..."
 echo "Current directory: $(pwd)"
 
-# Create Node.js build script
-cat > build.js << 'EOL'
-const { execSync } = require('child_process');
+# Find npm location
+NPM_PATH=$(which npm)
+echo "NPM location: $NPM_PATH"
 
-console.log('Starting Node.js build process...');
+# Check if npm exists
+if [ -z "$NPM_PATH" ]; then
+    echo "Error: npm not found in PATH"
+    echo "PATH: $PATH"
+    exit 1
+fi
 
-try {
-    console.log('Installing dependencies...');
-    execSync('npm install', { stdio: 'inherit' });
+echo "Node version: $(node --version)"
+echo "NPM version: $($NPM_PATH --version)"
 
-    console.log('Running build...');
-    execSync('npm run build', { stdio: 'inherit' });
+echo "Installing dependencies..."
+$NPM_PATH install
 
-    console.log('Build process completed successfully.');
-} catch (error) {
-    console.error('Build failed:', error.message);
-    process.exit(1);
-}
-EOL
-
-# Run the Node.js build script
-echo "Running Node.js build script..."
-node build.js
+echo "Running build..."
+$NPM_PATH run build
 
 echo "Build process completed." 

@@ -40,9 +40,9 @@ app.use(express.json());
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production'
         ? [
-            'https://reconciler-frontend.onrender.com',
+            'https://frontend-new-er0k.onrender.com',
             'https://reconciler-backend.onrender.com',
-            'https://reconciler-frontend.onrender.com/',
+            'https://frontend-new-er0k.onrender.com/',
             'https://reconciler-backend.onrender.com/'
           ]
         : ['http://localhost:3000', 'http://localhost:4001'],
@@ -63,7 +63,7 @@ app.use((req, res, next) => {
         "style-src 'self' 'unsafe-inline' data:; " +
         "img-src 'self' data: blob:; " +
         "font-src 'self' data:; " +
-        "connect-src 'self' http://localhost:5001 https://reconciler-backend.onrender.com;"
+        "connect-src 'self' http://localhost:5001 https://reconciler-backend.onrender.com https://frontend-new-er0k.onrender.com;"
     );
     
     // Other security headers

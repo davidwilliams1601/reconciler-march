@@ -88,6 +88,11 @@ app.use((req, res, next) => {
     next();
 });
 
+// Handle preflight requests for all routes
+app.options('*', (req, res) => {
+    res.status(204).end();
+});
+
 // API Routes
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/invoices', invoiceRoutes);

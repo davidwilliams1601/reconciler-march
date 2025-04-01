@@ -57,26 +57,53 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Add preflight handling for all routes
-app.options('*', cors(corsOptions));
+app.options('*', (req, res) => {
+    const origin = req.headers.origin;
+    if (corsOptions.origin.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+        res.header('Access-Control-Allow-Methods', corsOptions.methods.join(', '));
+        res.header('Access-Control-Allow-Headers', corsOptions.allowedHeaders.join(', '));
+        res.header('Access-Control-Allow-Credentials', 'true');
+        res.header('Access-Control-Max-Age', corsOptions.maxAge.toString());
+    }
+    res.status(204).end();
+});
 
 // Add security headers middleware
 app.use((req, res, next) => {
+    // Debug request details
+    console.log('\nRequest Details:');
+    console.log('- Method:', req.method);
+    console.log('- URL:', req.url);
+    console.log('- Origin:', req.headers.origin);
+    console.log('- User Agent:', req.headers['user-agent']);
+    
     // Content Security Policy
-    res.setHeader(
-        'Content-Security-Policy',
-        "default-src 'self'; " +
+    const csp = "default-src 'self'; " +
         "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
         "style-src 'self' 'unsafe-inline' data:; " +
         "img-src 'self' data: blob:; " +
         "font-src 'self' data:; " +
-        "connect-src 'self' http://localhost:5001 https://frontend-new-er0k.onrender.com https://frontend-new-er0k.onrender.com:443;"
-    );
+        "connect-src 'self' http://localhost:5001 https://frontend-new-er0k.onrender.com https://*.onrender.com;";
+    
+    console.log('\nCSP Header:');
+    console.log(csp);
+    
+    res.setHeader('Content-Security-Policy', csp);
     
     // Other security headers
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-XSS-Protection', '1; mode=block');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    
+    // Debug response headers
+    console.log('\nResponse Headers:');
+    console.log('- Content-Security-Policy:', res.getHeader('Content-Security-Policy'));
+    console.log('- Access-Control-Allow-Origin:', res.getHeader('Access-Control-Allow-Origin'));
+    console.log('- Access-Control-Allow-Methods:', res.getHeader('Access-Control-Allow-Methods'));
+    console.log('- Access-Control-Allow-Headers:', res.getHeader('Access-Control-Allow-Headers'));
+    
     next();
 });
 
@@ -86,11 +113,6 @@ app.use((req, res, next) => {
     console.log('Origin:', req.headers.origin);
     console.log('Environment:', process.env.NODE_ENV);
     next();
-});
-
-// Handle preflight requests for all routes
-app.options('*', (req, res) => {
-    res.status(204).end();
 });
 
 // API Routes

@@ -1,27 +1,21 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
 import { Box, AppBar, Toolbar, Typography, IconButton, Drawer, List, ListItem, ListItemIcon, ListItemText, useTheme } from '@mui/material';
-import { Menu as MenuIcon, Dashboard, Settings, CloudUpload, Logout, Receipt } from '@mui/icons-material';
+import { Menu as MenuIcon, Dashboard, Settings, CloudUpload, Receipt } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { logout } from '../features/auth/authSlice';
 
 const drawerWidth = 240;
 
-const Layout: React.FC = () => {
+interface LayoutProps {
+  children: React.ReactNode;
+}
+
+const Layout: React.FC<LayoutProps> = ({ children }) => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
-  };
-
-  const handleLogout = () => {
-    dispatch(logout());
-    localStorage.removeItem('token');
-    navigate('/login');
   };
 
   const menuItems = [
@@ -49,13 +43,6 @@ const Layout: React.FC = () => {
             <ListItemText primary={item.text} />
           </ListItem>
         ))}
-        <ListItem 
-          onClick={handleLogout}
-          sx={{ cursor: 'pointer' }}
-        >
-          <ListItemIcon><Logout /></ListItemIcon>
-          <ListItemText primary="Logout" />
-        </ListItem>
       </List>
     </div>
   );
@@ -115,14 +102,10 @@ const Layout: React.FC = () => {
       </Box>
       <Box
         component="main"
-        sx={{
-          flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
-          mt: '64px',
-        }}
+        sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - ${drawerWidth}px)` } }}
       >
-        <Outlet />
+        <Toolbar />
+        {children}
       </Box>
     </Box>
   );

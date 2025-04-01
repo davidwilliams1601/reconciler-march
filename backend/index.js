@@ -42,7 +42,10 @@ const corsOptions = {
         ? [
             'https://frontend-new-er0k.onrender.com',
             'https://frontend-new-er0k.onrender.com/',
-            'https://frontend-new-er0k.onrender.com:443'
+            'https://frontend-new-er0k.onrender.com:443',
+            'https://reconciler-march.onrender.com',
+            'https://reconciler-march.onrender.com/',
+            'https://reconciler-march.onrender.com:443'
           ]
         : ['http://localhost:3000', 'http://localhost:4001'],
     credentials: true,

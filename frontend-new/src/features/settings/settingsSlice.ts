@@ -60,7 +60,7 @@ const initialState: SettingsState = {
 export const fetchSettings = createAsyncThunk(
   'settings/fetchSettings',
   async () => {
-    const response = await api.get('/settings');
+    const response = await api.get('/api/settings');
     return response.data;
   }
 );
@@ -68,7 +68,7 @@ export const fetchSettings = createAsyncThunk(
 export const saveSettings = createAsyncThunk(
   'settings/saveSettings',
   async (settings: Settings) => {
-    const response = await api.post('/settings', settings);
+    const response = await api.post('/api/settings', settings);
     return response.data;
   }
 );
@@ -77,7 +77,7 @@ export const saveSettings = createAsyncThunk(
 export const testXeroConnection = createAsyncThunk(
   'settings/testXeroConnection',
   async (credentials: { clientId: string; clientSecret: string; tenantId: string }) => {
-    const response = await api.post('/settings/test-xero', credentials);
+    const response = await api.post('/api/settings/test-xero', credentials);
     return response.data;
   }
 );
@@ -94,7 +94,7 @@ export const testDextConnection = createAsyncThunk(
       };
     }
     
-    const response = await api.post('/settings/test-dext', credentials);
+    const response = await api.post('/api/settings/test-dext', credentials);
     return response.data;
   }
 );
@@ -102,7 +102,7 @@ export const testDextConnection = createAsyncThunk(
 export const testGoogleVisionConnection = createAsyncThunk(
   'settings/testGoogleVisionConnection',
   async (credentials: { apiKey: string; projectId: string }) => {
-    const response = await api.post('/settings/test-google-vision', credentials);
+    const response = await api.post('/api/settings/test-google-vision', credentials);
     return response.data;
   }
 );

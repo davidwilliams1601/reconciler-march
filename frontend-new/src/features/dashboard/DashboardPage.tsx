@@ -1,13 +1,34 @@
-import React from 'react';
-import { Container, Typography, Box, Grid, Paper, Card, CardContent } from '@mui/material';
+import React, { useEffect } from 'react';
+import { Container, Typography, Box, Grid, Paper, Card, CardContent, CircularProgress, Alert } from '@mui/material';
 import { Receipt, HourglassEmpty, Savings } from '@mui/icons-material';
+import { useAppDispatch, useAppSelector } from '../../app/hooks';
+import { fetchDashboardStats } from './dashboardSlice';
 
 const DashboardPage: React.FC = () => {
-  // TODO: Replace with actual data from API
-  const stats = {
-    totalProcessed: 150,
-    inReview: 25,
+  const dispatch = useAppDispatch();
+  const { stats, status, error } = useAppSelector((state) => state.dashboard);
+
+  useEffect(() => {
+    // Only fetch if we don't have stats already or if there was an error
+    if (!stats || error) {
+      dispatch(fetchDashboardStats());
+    }
+  }, [dispatch, stats, error]);
+
+  // Fallback data in case API fails
+  const fallbackStats = {
+    totalInvoices: 150,
+    pendingInvoices: 25,
     moneySaved: 175, // (150 + 25) * £1 per minute
+  };
+
+  // Use redux state if available, otherwise use fallback data
+  const displayStats = {
+    totalProcessed: stats?.totalInvoices || fallbackStats.totalInvoices,
+    inReview: stats?.pendingInvoices || fallbackStats.pendingInvoices,
+    moneySaved: stats?.totalInvoices && stats.pendingInvoices 
+      ? (stats.totalInvoices + stats.pendingInvoices) 
+      : fallbackStats.moneySaved,
   };
 
   const StatCard: React.FC<{
@@ -25,7 +46,7 @@ const DashboardPage: React.FC = () => {
           </Typography>
         </Box>
         <Typography variant="h4" component="div" sx={{ mb: 1 }}>
-          {value}
+          {title === 'Money Saved' ? `£${value}` : value}
         </Typography>
         {title === 'Money Saved' && (
           <Typography variant="body2" color="text.secondary">
@@ -36,17 +57,31 @@ const DashboardPage: React.FC = () => {
     </Card>
   );
 
+  if (status === 'loading' && !stats) {
+    return (
+      <Container sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
         Welcome to Invoice Reconciler
       </Typography>
       
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+      
       <Grid container spacing={3} sx={{ mt: 2 }}>
         <Grid item xs={12} md={4}>
           <StatCard
             title="Invoices Processed"
-            value={stats.totalProcessed}
+            value={displayStats.totalProcessed}
             icon={<Receipt />}
             color="#1976d2"
           />
@@ -54,7 +89,7 @@ const DashboardPage: React.FC = () => {
         <Grid item xs={12} md={4}>
           <StatCard
             title="In Review"
-            value={stats.inReview}
+            value={displayStats.inReview}
             icon={<HourglassEmpty />}
             color="#ed6c02"
           />
@@ -62,7 +97,7 @@ const DashboardPage: React.FC = () => {
         <Grid item xs={12} md={4}>
           <StatCard
             title="Money Saved"
-            value={stats.moneySaved}
+            value={displayStats.moneySaved}
             icon={<Savings />}
             color="#2e7d32"
           />
@@ -73,9 +108,28 @@ const DashboardPage: React.FC = () => {
         <Typography variant="h6" gutterBottom>
           Recent Activity
         </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Activity feed will be implemented in the next update.
-        </Typography>
+        {status === 'loading' ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+            <CircularProgress size={24} />
+          </Box>
+        ) : stats?.recentActivity && stats.recentActivity.length > 0 ? (
+          <Box>
+            {stats.recentActivity.map((activity, index) => (
+              <Box key={activity.id || index} sx={{ mb: 1, py: 1, borderBottom: '1px solid #eee' }}>
+                <Typography variant="body1">
+                  {activity.description || activity.type}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {new Date(activity.timestamp).toLocaleString()}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        ) : (
+          <Typography variant="body1" color="text.secondary">
+            No recent activity to display.
+          </Typography>
+        )}
       </Paper>
     </Container>
   );

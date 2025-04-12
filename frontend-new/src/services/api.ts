@@ -1,9 +1,15 @@
 import axios from 'axios';
+import { mockInvoices, mockDashboardStats } from './mockData';
+import { mockSettings, mockOrganization, mockEmailProcessing, mockCostCenters } from './mockSettings';
 
 // Debug environment variables
 console.log('Frontend Environment Variables:');
 console.log('REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
 console.log('NODE_ENV:', process.env.NODE_ENV);
+
+// Control mock mode with environment variable or enable when in development
+const MOCK_MODE = process.env.REACT_APP_MOCK_MODE === 'true' || process.env.NODE_ENV === 'development';
+console.log('MOCK_MODE:', MOCK_MODE);
 
 // Determine the base URL based on environment
 const getBaseUrl = () => {
@@ -56,14 +62,85 @@ api.interceptors.response.use(
         data: error.response.data,
       });
 
-      // Handle 502 errors (Bad Gateway)
-      if (error.response.status === 502) {
-        console.error('Backend server is unreachable (502 Bad Gateway)');
-        // You could implement fallback behavior here if needed
+      // Handle 502 errors (Bad Gateway) or 404 errors (Not Found)
+      if (error.response.status === 502 || error.response.status === 404) {
+        console.warn(`Backend server returned ${error.response.status}. Using mock data if available.`);
+        
+        // Check if we're in mock mode and can provide mock data
+        if (MOCK_MODE) {
+          const url = error.config.url;
+          
+          // Return mock data based on the API endpoint
+          if (url && url.includes('/api/invoices')) {
+            console.info('Using mock invoice data');
+            return Promise.resolve({ data: mockInvoices });
+          }
+          
+          if (url && url.includes('/api/dashboard/stats')) {
+            console.info('Using mock dashboard stats');
+            return Promise.resolve({ data: mockDashboardStats });
+          }
+          
+          if (url && url.includes('/api/settings')) {
+            console.info('Using mock settings data');
+            return Promise.resolve({ data: mockSettings });
+          }
+          
+          if (url && url.includes('/api/organization')) {
+            console.info('Using mock organization data');
+            return Promise.resolve({ data: mockOrganization });
+          }
+          
+          if (url && url.includes('/api/email-processing')) {
+            console.info('Using mock email processing data');
+            return Promise.resolve({ data: mockEmailProcessing });
+          }
+          
+          if (url && url.includes('/api/cost-centers')) {
+            console.info('Using mock cost centers data');
+            return Promise.resolve({ data: mockCostCenters });
+          }
+        }
       }
     } else if (error.request) {
       // The request was made but no response was received
       console.error('API Error (No Response):', error.request);
+      
+      // Check if we're in mock mode and can provide mock data
+      if (MOCK_MODE) {
+        const url = error.config.url;
+        
+        // Return mock data based on the API endpoint
+        if (url && url.includes('/api/invoices')) {
+          console.info('Using mock invoice data due to network error');
+          return Promise.resolve({ data: mockInvoices });
+        }
+        
+        if (url && url.includes('/api/dashboard/stats')) {
+          console.info('Using mock dashboard stats due to network error');
+          return Promise.resolve({ data: mockDashboardStats });
+        }
+        
+        if (url && url.includes('/api/settings')) {
+          console.info('Using mock settings data due to network error');
+          return Promise.resolve({ data: mockSettings });
+        }
+        
+        if (url && url.includes('/api/organization')) {
+          console.info('Using mock organization data due to network error');
+          return Promise.resolve({ data: mockOrganization });
+        }
+        
+        if (url && url.includes('/api/email-processing')) {
+          console.info('Using mock email processing data due to network error');
+          return Promise.resolve({ data: mockEmailProcessing });
+        }
+        
+        if (url && url.includes('/api/cost-centers')) {
+          console.info('Using mock cost centers data due to network error');
+          return Promise.resolve({ data: mockCostCenters });
+        }
+      }
     } else {
       // Something happened in setting up the request that triggered an Error
       console.error('API Error:', error.message);

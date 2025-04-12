@@ -29,7 +29,7 @@ const initialState: DashboardState = {
 export const fetchDashboardStats = createAsyncThunk(
   'dashboard/fetchStats',
   async () => {
-    const response = await api.get('/dashboard/stats');
+    const response = await api.get('/api/dashboard/stats');
     return response.data;
   }
 );

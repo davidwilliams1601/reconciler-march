@@ -147,10 +147,10 @@ export const fetchInvoices = createAsyncThunk(
     }
     
     const queryString = queryParams.toString();
-    const url = `/invoices${queryString ? `?${queryString}` : ''}`;
+    const url = `/api/invoices${queryString ? `?${queryString}` : ''}`;
     
     const response = await api.get(url);
-    return response.data as PaginatedInvoices;
+    return response.data;
   }
 );
 
@@ -158,7 +158,7 @@ export const addInvoice = createAsyncThunk(
   'invoices/addInvoice',
   async (invoice: Omit<Invoice, '_id' | 'createdAt' | 'updatedAt'>, { rejectWithValue }) => {
     try {
-      const response = await api.post('/invoices', invoice);
+      const response = await api.post('/api/invoices', invoice);
       return response.data;
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || 'Failed to add invoice');
@@ -170,7 +170,7 @@ export const updateInvoice = createAsyncThunk(
   'invoices/updateInvoice',
   async ({ id, invoice }: { id: string; invoice: Partial<Invoice> }, { rejectWithValue }) => {
     try {
-      const response = await api.put(`/invoices/${id}`, invoice);
+      const response = await api.put(`/api/invoices/${id}`, invoice);
       return response.data;
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || 'Failed to update invoice');
@@ -191,7 +191,7 @@ export const reconcileInvoice = createAsyncThunk(
     reference?: string;
   }, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/invoices/${invoiceId}/reconcile`, {
+      const response = await api.post(`/api/invoices/${invoiceId}/reconcile`, {
         transactionId,
         updateCostCenter
       });

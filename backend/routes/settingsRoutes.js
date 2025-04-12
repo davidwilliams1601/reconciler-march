@@ -11,11 +11,39 @@ router.get('/', async (req, res) => {
         if (!settings) {
             // Create default settings if none exist
             settings = await Settings.create({});
+            console.log('Created default settings document');
         }
         res.json(settings);
     } catch (error) {
         console.error('Error fetching settings:', error);
         res.status(500).json({ message: 'Error fetching settings' });
+    }
+});
+
+// Create or update settings
+router.post('/', async (req, res) => {
+    try {
+        console.log('Creating/updating settings...');
+        console.log('Request body:', req.body);
+        
+        let settings = await Settings.findOne();
+        
+        if (!settings) {
+            console.log('No existing settings found, creating new settings document');
+            settings = new Settings(req.body);
+        } else {
+            console.log('Updating existing settings');
+            Object.assign(settings, req.body);
+        }
+
+        console.log('Saving settings...');
+        await settings.save();
+        console.log('Settings saved successfully');
+        
+        res.json(settings);
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        res.status(500).json({ message: 'Error saving settings', error: error.message });
     }
 });
 
@@ -393,6 +421,29 @@ router.post('/test-xero', async (req, res) => {
         
         console.log('Testing Xero connection with tenant ID:', tenantId);
         
+        // Ensure settings exist first
+        let settings = await Settings.findOne();
+        if (!settings) {
+            console.log('No existing settings found, creating settings document');
+            settings = new Settings();
+            await settings.save();
+        }
+        
+        // Update the Xero settings
+        if (!settings.api) {
+            settings.api = {};
+        }
+        if (!settings.api.xero) {
+            settings.api.xero = {};
+        }
+        
+        settings.api.xero.clientId = clientId;
+        settings.api.xero.clientSecret = clientSecret;
+        settings.api.xero.tenantId = tenantId;
+        
+        await settings.save();
+        console.log('Xero settings saved');
+        
         // Simple validation - in a real app, would attempt an actual API call
         // For now, just return success if credentials were provided
         res.json({ 
@@ -423,6 +474,28 @@ router.post('/test-google-vision', async (req, res) => {
         
         console.log('Testing Google Vision connection for project:', projectId);
         
+        // Ensure settings exist first
+        let settings = await Settings.findOne();
+        if (!settings) {
+            console.log('No existing settings found, creating settings document');
+            settings = new Settings();
+            await settings.save();
+        }
+        
+        // Update the Google Vision settings
+        if (!settings.api) {
+            settings.api = {};
+        }
+        if (!settings.api.googleVision) {
+            settings.api.googleVision = {};
+        }
+        
+        settings.api.googleVision.apiKey = apiKey;
+        settings.api.googleVision.projectId = projectId;
+        
+        await settings.save();
+        console.log('Google Vision settings saved');
+        
         // Simple validation - in a real app, would attempt an actual API call
         // For now, just return success if credentials were provided
         res.json({ 
@@ -452,6 +525,29 @@ router.post('/test-dext', async (req, res) => {
         }
         
         console.log('Testing Dext connection');
+        
+        // Ensure settings exist first
+        let settings = await Settings.findOne();
+        if (!settings) {
+            console.log('No existing settings found, creating settings document');
+            settings = new Settings();
+            await settings.save();
+        }
+        
+        // Update the Dext settings
+        if (!settings.api) {
+            settings.api = {};
+        }
+        if (!settings.api.dext) {
+            settings.api.dext = {};
+        }
+        
+        settings.api.dext.apiKey = apiKey;
+        settings.api.dext.clientId = clientId;
+        settings.api.dext.clientSecret = clientSecret;
+        
+        await settings.save();
+        console.log('Dext settings saved');
         
         // Simple validation - in a real app, would attempt an actual API call
         // For now, just return success if credentials were provided

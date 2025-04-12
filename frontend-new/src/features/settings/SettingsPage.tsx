@@ -4,7 +4,7 @@ import {
   fetchSettings, 
   saveSettings, 
   testXeroConnection, 
-  testDextConnection, 
+  testDextConnection,
   testGoogleVisionConnection 
 } from './settingsSlice';
 import type { Settings } from './settingsSlice';
@@ -43,13 +43,13 @@ interface APIConfig {
   xeroTenantId: string;
   xeroRedirectUri: string;
   
-  // Dext API Configuration
-  dextApiKey: string;
-  dextClientId: string;
-  dextClientSecret: string;
-  dextEnvironment: string;
-  dextWebhookUrl: string;
-  dextWebhookSecret: string;
+  // Dext API Configuration (optional)
+  dextApiKey?: string;
+  dextClientId?: string;
+  dextClientSecret?: string;
+  dextEnvironment?: string;
+  dextWebhookUrl?: string;
+  dextWebhookSecret?: string;
   
   // Google Vision API Configuration
   googleVisionApiKey: string;
@@ -74,7 +74,7 @@ const SettingsPage: React.FC = () => {
     xeroTenantId: '',
     xeroRedirectUri: '',
     
-    // Dext API initial values
+    // Dext API initial values (kept for compatibility)
     dextApiKey: '',
     dextClientId: '',
     dextClientSecret: '',
@@ -88,7 +88,7 @@ const SettingsPage: React.FC = () => {
     googleVisionKeyFilePath: '',
     googleVisionConfidenceThreshold: 0.95,
     
-    // Reconciliation Settings
+    // Reconciliation Settings initial values
     autoReconcileEnabled: true,
     reconciliationConfidenceThreshold: 0.95,
     reconciliationDateRange: 30,
@@ -183,18 +183,6 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleTestDextConnection = async () => {
-    try {
-      await dispatch(testDextConnection({
-        apiKey: config.dextApiKey,
-        clientId: config.dextClientId,
-        clientSecret: config.dextClientSecret
-      })).unwrap();
-    } catch (error) {
-      console.error('Failed to test Dext connection:', error);
-    }
-  };
-
   const handleTestGoogleVisionConnection = async () => {
     try {
       setGoogleVisionTestStatus('testing');
@@ -214,6 +202,18 @@ const SettingsPage: React.FC = () => {
       console.error('Failed to test Google Vision connection:', error);
       setGoogleVisionTestStatus('error');
       setGoogleVisionTestMessage('Connection test failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  };
+
+  const handleTestDextConnection = async () => {
+    try {
+      await dispatch(testDextConnection({
+        apiKey: '',
+        clientId: '',
+        clientSecret: ''
+      })).unwrap();
+    } catch (error) {
+      console.error('Failed to test Dext connection:', error);
     }
   };
 
@@ -320,102 +320,6 @@ const SettingsPage: React.FC = () => {
                           ) : (
                             'Test Xero Connection'
                           )}
-                        </Button>
-                      </Box>
-                    </Grid>
-
-                    <Grid item xs={12}>
-                      <Divider sx={{ my: 3 }} />
-                    </Grid>
-
-                    {/* Dext API Configuration */}
-                    <Grid item xs={12}>
-                      <Typography variant="h6" gutterBottom>
-                        Dext API Configuration
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary" paragraph>
-                        Configure your Dext (Receipt Bank) API settings for document processing.
-                      </Typography>
-                    </Grid>
-
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="API Key"
-                        name="dextApiKey"
-                        value={config.dextApiKey}
-                        onChange={handleChange}
-                        type="password"
-                        helperText="Your Dext API key"
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Client ID"
-                        name="dextClientId"
-                        value={config.dextClientId}
-                        onChange={handleChange}
-                        helperText="Your Dext client ID"
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Client Secret"
-                        name="dextClientSecret"
-                        value={config.dextClientSecret}
-                        onChange={handleChange}
-                        type="password"
-                        helperText="Your Dext client secret"
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Environment"
-                        name="dextEnvironment"
-                        value={config.dextEnvironment}
-                        onChange={handleChange}
-                        helperText="Dext environment (production/sandbox)"
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Webhook URL"
-                        name="dextWebhookUrl"
-                        value={config.dextWebhookUrl}
-                        onChange={handleChange}
-                        helperText="URL to receive Dext webhook notifications"
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Webhook Secret"
-                        name="dextWebhookSecret"
-                        value={config.dextWebhookSecret}
-                        onChange={handleChange}
-                        type="password"
-                        helperText="Secret for validating Dext webhook requests"
-                      />
-                    </Grid>
-
-                    <Grid item xs={12}>
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                        <Button
-                          variant="outlined"
-                          color="primary"
-                          onClick={handleTestDextConnection}
-                          disabled={!config.dextApiKey || !config.dextClientId || !config.dextClientSecret}
-                        >
-                          Test Dext Connection
                         </Button>
                       </Box>
                     </Grid>
@@ -726,102 +630,6 @@ const SettingsPage: React.FC = () => {
                         ) : (
                           'Test Xero Connection'
                         )}
-                      </Button>
-                    </Box>
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <Divider sx={{ my: 3 }} />
-                  </Grid>
-
-                  {/* Dext API Configuration */}
-                  <Grid item xs={12}>
-                    <Typography variant="h6" gutterBottom>
-                      Dext API Configuration
-                    </Typography>
-                    <Typography variant="body2" color="textSecondary" paragraph>
-                      Configure your Dext (Receipt Bank) API settings for document processing.
-                    </Typography>
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="API Key"
-                      name="dextApiKey"
-                      value={config.dextApiKey}
-                      onChange={handleChange}
-                      type="password"
-                      helperText="Your Dext API key"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Client ID"
-                      name="dextClientId"
-                      value={config.dextClientId}
-                      onChange={handleChange}
-                      helperText="Your Dext client ID"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Client Secret"
-                      name="dextClientSecret"
-                      value={config.dextClientSecret}
-                      onChange={handleChange}
-                      type="password"
-                      helperText="Your Dext client secret"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Environment"
-                      name="dextEnvironment"
-                      value={config.dextEnvironment}
-                      onChange={handleChange}
-                      helperText="Dext environment (production/sandbox)"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Webhook URL"
-                      name="dextWebhookUrl"
-                      value={config.dextWebhookUrl}
-                      onChange={handleChange}
-                      helperText="URL to receive Dext webhook notifications"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Webhook Secret"
-                      name="dextWebhookSecret"
-                      value={config.dextWebhookSecret}
-                      onChange={handleChange}
-                      type="password"
-                      helperText="Secret for validating Dext webhook requests"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12}>
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                      <Button
-                        variant="outlined"
-                        color="primary"
-                        onClick={handleTestDextConnection}
-                        disabled={!config.dextApiKey || !config.dextClientId || !config.dextClientSecret}
-                      >
-                        Test Dext Connection
                       </Button>
                     </Box>
                   </Grid>

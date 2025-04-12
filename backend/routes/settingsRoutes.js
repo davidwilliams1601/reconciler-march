@@ -517,10 +517,12 @@ router.post('/test-dext', async (req, res) => {
     try {
         const { apiKey, clientId, clientSecret } = req.body;
         
+        // Make Dext optional by returning success even if credentials are not provided
         if (!apiKey || !clientId || !clientSecret) {
-            return res.status(400).json({ 
-                message: 'Missing required Dext credentials',
-                success: false
+            return res.json({ 
+                message: 'Dext integration is optional and has been disabled',
+                success: true,
+                authenticated: false
             });
         }
         
@@ -553,7 +555,8 @@ router.post('/test-dext', async (req, res) => {
         // For now, just return success if credentials were provided
         res.json({ 
             message: 'Dext connection test successful',
-            success: true
+            success: true,
+            authenticated: true
         });
     } catch (error) {
         console.error('Error testing Dext connection:', error);

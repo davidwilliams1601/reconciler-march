@@ -80,7 +80,16 @@ export const testXeroConnection = createAsyncThunk(
 
 export const testDextConnection = createAsyncThunk(
   'settings/testDextConnection',
-  async (credentials: { apiKey: string; clientId: string; clientSecret: string }) => {
+  async (credentials: { apiKey?: string; clientId?: string; clientSecret?: string }) => {
+    // If any credentials are missing, return successful but disabled status
+    if (!credentials.apiKey || !credentials.clientId || !credentials.clientSecret) {
+      return {
+        success: true,
+        authenticated: false,
+        message: 'Dext integration is optional and has been disabled'
+      };
+    }
+    
     const response = await api.post('/settings/test-dext', credentials);
     return response.data;
   }

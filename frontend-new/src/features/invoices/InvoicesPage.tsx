@@ -150,7 +150,7 @@ const InvoicesPage: React.FC = () => {
     });
   };
 
-  if (status === 'loading' && invoices.length === 0) {
+  if (status === 'loading' && (!invoices || invoices.length === 0)) {
     return (
       <Container sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
         <CircularProgress />
@@ -158,7 +158,7 @@ const InvoicesPage: React.FC = () => {
     );
   }
 
-  if (error && invoices.length === 0) {
+  if (error && (!invoices || invoices.length === 0)) {
     return (
       <Container sx={{ mt: 4 }}>
         <Alert severity="error">{error}</Alert>
@@ -268,14 +268,14 @@ const InvoicesPage: React.FC = () => {
                   <CircularProgress size={24} sx={{ my: 2 }} />
                 </TableCell>
               </TableRow>
-            ) : invoices.length === 0 ? (
+            ) : invoices && invoices.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} align="center">
                   No invoices found
                 </TableCell>
               </TableRow>
             ) : (
-              invoices.map((invoice: Invoice) => (
+              Array.isArray(invoices) && invoices.length > 0 ? invoices.map((invoice: Invoice) => (
                 <TableRow key={invoice._id}>
                   <TableCell>{invoice.invoiceNumber}</TableCell>
                   <TableCell>{invoice.vendor}</TableCell>
@@ -295,7 +295,7 @@ const InvoicesPage: React.FC = () => {
                           Not assigned
                         </Typography>
                       )}
-                      {!invoice.costCenter?.manuallySet && (
+                      {invoice.costCenter && !invoice.costCenter.manuallySet && (
                         <Tooltip title="Train model with correct cost center">
                           <IconButton
                             size="small"
@@ -359,7 +359,13 @@ const InvoicesPage: React.FC = () => {
                     </Box>
                   </TableCell>
                 </TableRow>
-              ))
+              )) : (
+                <TableRow>
+                  <TableCell colSpan={8} align="center">
+                    No invoices available
+                  </TableCell>
+                </TableRow>
+              )
             )}
           </TableBody>
         </Table>

@@ -86,7 +86,7 @@ app.use((req, res, next) => {
         "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
         "style-src 'self' 'unsafe-inline' data:; " +
         "img-src 'self' data: blob:; " +
-        "font-src 'self' data:; " +
+        "font-src 'self' data: blob: https:; " +
         "connect-src 'self' http://localhost:5001 https://frontend-new-er0k.onrender.com https://*.onrender.com;";
     
     console.log('\nCSP Header:');

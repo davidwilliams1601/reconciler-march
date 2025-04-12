@@ -354,6 +354,25 @@ const SettingsPage: React.FC = () => {
                             'Test Xero Connection'
                           )}
                         </Button>
+                        <Button
+                          variant="contained"
+                          color="secondary"
+                          onClick={() => {
+                            // Simulate successful authentication locally for development/testing
+                            setConfig(prev => ({
+                              ...prev,
+                              xeroIsAuthenticated: true,
+                              xeroAccessToken: '********',
+                              xeroRefreshToken: '********',
+                              xeroTokenExpiry: new Date(Date.now() + 3600000).toISOString() // 1 hour from now
+                            }));
+                            setXeroTestStatus('success');
+                            setXeroTestMessage('Local development mode: Authentication simulated successfully');
+                          }}
+                          sx={{ ml: 1 }}
+                        >
+                          Use Local Credentials
+                        </Button>
                       </Box>
                     </Grid>
 
@@ -692,6 +711,25 @@ const SettingsPage: React.FC = () => {
                         ) : (
                           'Test Xero Connection'
                         )}
+                      </Button>
+                      <Button
+                        variant="contained"
+                        color="secondary"
+                        onClick={() => {
+                          // Simulate successful authentication locally for development/testing
+                          setConfig(prev => ({
+                            ...prev,
+                            xeroIsAuthenticated: true,
+                            xeroAccessToken: '********',
+                            xeroRefreshToken: '********',
+                            xeroTokenExpiry: new Date(Date.now() + 3600000).toISOString() // 1 hour from now
+                          }));
+                          setXeroTestStatus('success');
+                          setXeroTestMessage('Local development mode: Authentication simulated successfully');
+                        }}
+                        sx={{ ml: 1 }}
+                      >
+                        Use Local Credentials
                       </Button>
                     </Box>
                   </Grid>

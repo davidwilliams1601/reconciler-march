@@ -8,6 +8,10 @@ export interface Settings {
   xeroClientSecret: string;
   xeroTenantId: string;
   xeroRedirectUri: string;
+  xeroIsAuthenticated?: boolean;
+  xeroAccessToken?: string;
+  xeroRefreshToken?: string;
+  xeroTokenExpiry?: string;
   
   // Dext API Configuration
   dextApiKey: string;

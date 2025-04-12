@@ -7,16 +7,61 @@ const nodemailer = require('nodemailer');
 // Get all settings
 router.get('/', async (req, res) => {
     try {
+        // Get settings from database
         let settings = await Settings.findOne();
+        
+        // If no settings exist, create default settings
         if (!settings) {
-            // Create default settings if none exist
-            settings = await Settings.create({});
-            console.log('Created default settings document');
+            settings = new Settings({
+                reconciliation: {
+                    autoReconcileEnabled: true,
+                    confidenceThreshold: 0.9,
+                    dateRange: 30
+                }
+            });
+            await settings.save();
         }
-        res.json(settings);
+        
+        // Prepare frontend settings object
+        const frontendSettings = {
+            // Xero API settings
+            xeroClientId: settings.api?.xero?.clientId || '',
+            xeroClientSecret: settings.api?.xero?.clientSecret || '',
+            xeroTenantId: settings.api?.xero?.tenantId || '',
+            xeroRedirectUri: settings.api?.xero?.redirectUri || '',
+            // Add authentication status
+            xeroIsAuthenticated: !!(settings.api?.xero?.accessToken && settings.api?.xero?.refreshToken),
+            
+            // Only include these if you need them in the frontend (masked for security)
+            xeroAccessToken: settings.api?.xero?.accessToken ? '********' : '',
+            xeroRefreshToken: settings.api?.xero?.refreshToken ? '********' : '',
+            xeroTokenExpiry: settings.api?.xero?.tokenExpiry || '',
+            
+            // Dext API settings
+            dextApiKey: settings.api?.dext?.apiKey || '',
+            dextClientId: settings.api?.dext?.clientId || '',
+            dextClientSecret: settings.api?.dext?.clientSecret || '',
+            dextEnvironment: settings.api?.dext?.environment || '',
+            dextWebhookUrl: settings.api?.dext?.webhookUrl || '',
+            dextWebhookSecret: settings.api?.dext?.webhookSecret || '',
+            
+            // Google Vision API settings
+            googleVisionApiKey: settings.api?.googleVision?.apiKey || '',
+            googleVisionProjectId: settings.api?.googleVision?.projectId || '',
+            googleVisionKeyFilePath: settings.api?.googleVision?.keyFilePath || '',
+            googleVisionConfidenceThreshold: settings.api?.googleVision?.confidenceThreshold || 0.9,
+            
+            // Reconciliation settings
+            autoReconcileEnabled: settings.reconciliation?.autoReconcileEnabled || false,
+            reconciliationConfidenceThreshold: settings.reconciliation?.confidenceThreshold || 0.9,
+            reconciliationDateRange: settings.reconciliation?.dateRange || 30,
+            reconciliationAccountCodes: settings.reconciliation?.accountCodes || ''
+        };
+        
+        res.json(frontendSettings);
     } catch (error) {
         console.error('Error fetching settings:', error);
-        res.status(500).json({ message: 'Error fetching settings' });
+        res.status(500).json({ message: 'Error fetching settings', error: error.message });
     }
 });
 

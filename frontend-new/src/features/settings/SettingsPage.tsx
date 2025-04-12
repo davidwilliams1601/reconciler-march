@@ -28,6 +28,10 @@ import {
   ListItemText,
   ListItemIcon,
   ListItemButton,
+  AlertTitle,
+  Tabs,
+  Tab,
+  useTheme,
 } from '@mui/material';
 import { AccountCircle, Business, Category, Settings as SettingsIcon, Person, Email, AccountBalance } from '@mui/icons-material';
 import { Link as RouterLink, Routes, Route, useLocation } from 'react-router-dom';
@@ -244,6 +248,17 @@ const SettingsPage: React.FC = () => {
                       <Typography variant="h6" gutterBottom>
                         Xero API Configuration
                       </Typography>
+                      {config.xeroIsAuthenticated && (
+                        <Alert severity="success" sx={{ mb: 2 }}>
+                          <AlertTitle>Xero Authentication Successful</AlertTitle>
+                          Your application is already connected to Xero. These credentials were set up by the xero-auth.js script.
+                          {config.xeroTokenExpiry && (
+                            <Typography variant="body2" sx={{ mt: 1 }}>
+                              Token expires: {new Date(config.xeroTokenExpiry).toLocaleString()}
+                            </Typography>
+                          )}
+                        </Alert>
+                      )}
                       <Typography variant="body2" color="textSecondary" paragraph>
                         Configure your Xero API integration settings for accounting synchronization.
                       </Typography>
@@ -257,6 +272,10 @@ const SettingsPage: React.FC = () => {
                         value={config.xeroClientId}
                         onChange={handleChange}
                         helperText="Your Xero OAuth 2.0 client ID"
+                        disabled={config.xeroIsAuthenticated}
+                        InputProps={{
+                          readOnly: config.xeroIsAuthenticated,
+                        }}
                       />
                     </Grid>
 
@@ -269,6 +288,10 @@ const SettingsPage: React.FC = () => {
                         onChange={handleChange}
                         type="password"
                         helperText="Your Xero OAuth 2.0 client secret"
+                        disabled={config.xeroIsAuthenticated}
+                        InputProps={{
+                          readOnly: config.xeroIsAuthenticated,
+                        }}
                       />
                     </Grid>
 
@@ -280,6 +303,10 @@ const SettingsPage: React.FC = () => {
                         value={config.xeroTenantId}
                         onChange={handleChange}
                         helperText="Your Xero organization's tenant ID"
+                        disabled={config.xeroIsAuthenticated}
+                        InputProps={{
+                          readOnly: config.xeroIsAuthenticated,
+                        }}
                       />
                     </Grid>
 
@@ -291,6 +318,10 @@ const SettingsPage: React.FC = () => {
                         value={config.xeroRedirectUri}
                         onChange={handleChange}
                         helperText="OAuth 2.0 redirect URI"
+                        disabled={config.xeroIsAuthenticated}
+                        InputProps={{
+                          readOnly: config.xeroIsAuthenticated,
+                        }}
                       />
                     </Grid>
 
@@ -310,13 +341,15 @@ const SettingsPage: React.FC = () => {
                           variant="outlined"
                           color="primary"
                           onClick={handleTestXeroConnection}
-                          disabled={!config.xeroClientId || !config.xeroClientSecret || !config.xeroTenantId || xeroTestStatus === 'testing'}
+                          disabled={!config.xeroClientId || !config.xeroClientSecret || !config.xeroTenantId || xeroTestStatus === 'testing' || config.xeroIsAuthenticated}
                         >
                           {xeroTestStatus === 'testing' ? (
                             <>
                               <CircularProgress size={24} sx={{ mr: 1 }} />
                               Testing...
                             </>
+                          ) : config.xeroIsAuthenticated ? (
+                            'Already Connected'
                           ) : (
                             'Test Xero Connection'
                           )}
@@ -554,6 +587,17 @@ const SettingsPage: React.FC = () => {
                     <Typography variant="h6" gutterBottom>
                       Xero API Configuration
                     </Typography>
+                    {config.xeroIsAuthenticated && (
+                      <Alert severity="success" sx={{ mb: 2 }}>
+                        <AlertTitle>Xero Authentication Successful</AlertTitle>
+                        Your application is already connected to Xero. These credentials were set up by the xero-auth.js script.
+                        {config.xeroTokenExpiry && (
+                          <Typography variant="body2" sx={{ mt: 1 }}>
+                            Token expires: {new Date(config.xeroTokenExpiry).toLocaleString()}
+                          </Typography>
+                        )}
+                      </Alert>
+                    )}
                     <Typography variant="body2" color="textSecondary" paragraph>
                       Configure your Xero API integration settings for accounting synchronization.
                     </Typography>
@@ -567,6 +611,10 @@ const SettingsPage: React.FC = () => {
                       value={config.xeroClientId}
                       onChange={handleChange}
                       helperText="Your Xero OAuth 2.0 client ID"
+                      disabled={config.xeroIsAuthenticated}
+                      InputProps={{
+                        readOnly: config.xeroIsAuthenticated,
+                      }}
                     />
                   </Grid>
 
@@ -579,6 +627,10 @@ const SettingsPage: React.FC = () => {
                       onChange={handleChange}
                       type="password"
                       helperText="Your Xero OAuth 2.0 client secret"
+                      disabled={config.xeroIsAuthenticated}
+                      InputProps={{
+                        readOnly: config.xeroIsAuthenticated,
+                      }}
                     />
                   </Grid>
 
@@ -590,6 +642,10 @@ const SettingsPage: React.FC = () => {
                       value={config.xeroTenantId}
                       onChange={handleChange}
                       helperText="Your Xero organization's tenant ID"
+                      disabled={config.xeroIsAuthenticated}
+                      InputProps={{
+                        readOnly: config.xeroIsAuthenticated,
+                      }}
                     />
                   </Grid>
 
@@ -601,6 +657,10 @@ const SettingsPage: React.FC = () => {
                       value={config.xeroRedirectUri}
                       onChange={handleChange}
                       helperText="OAuth 2.0 redirect URI"
+                      disabled={config.xeroIsAuthenticated}
+                      InputProps={{
+                        readOnly: config.xeroIsAuthenticated,
+                      }}
                     />
                   </Grid>
 
@@ -620,13 +680,15 @@ const SettingsPage: React.FC = () => {
                         variant="outlined"
                         color="primary"
                         onClick={handleTestXeroConnection}
-                        disabled={!config.xeroClientId || !config.xeroClientSecret || !config.xeroTenantId || xeroTestStatus === 'testing'}
+                        disabled={!config.xeroClientId || !config.xeroClientSecret || !config.xeroTenantId || xeroTestStatus === 'testing' || config.xeroIsAuthenticated}
                       >
                         {xeroTestStatus === 'testing' ? (
                           <>
                             <CircularProgress size={24} sx={{ mr: 1 }} />
                             Testing...
                           </>
+                        ) : config.xeroIsAuthenticated ? (
+                          'Already Connected'
                         ) : (
                           'Test Xero Connection'
                         )}

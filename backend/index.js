@@ -45,12 +45,16 @@ const corsOptions = {
             'https://frontend-new-er0k.onrender.com:443',
             'https://reconciler-march.onrender.com',
             'https://reconciler-march.onrender.com/',
-            'https://reconciler-march.onrender.com:443'
+            'https://reconciler-march.onrender.com:443',
+            'https://*.onrender.com',  // Allow all subdomains on onrender.com
+            'https://*.netlify.app',   // Include netlify domains (commonly used for frontend)
+            'http://localhost:3000',   // Allow localhost development
+            'http://localhost:4001'    // Allow localhost development
           ]
-        : ['http://localhost:3000', 'http://localhost:4001'],
+        : ['*'], // Allow all origins in development
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With'],
     exposedHeaders: ['Content-Range', 'X-Content-Range'],
     maxAge: 600, // 10 minutes
     optionsSuccessStatus: 204
@@ -62,7 +66,19 @@ app.use(cors(corsOptions));
 // Add preflight handling for all routes
 app.options('*', (req, res) => {
     const origin = req.headers.origin;
-    if (corsOptions.origin.includes(origin)) {
+    
+    // In development, allow all origins
+    if (process.env.NODE_ENV !== 'production' || 
+        // In production, check if origin is in allowed list or matches wildcards
+        corsOptions.origin.includes(origin) || 
+        // Check for wildcard domains
+        (origin && (
+            corsOptions.origin.some(allowedOrigin => 
+                allowedOrigin.includes('*') && 
+                origin.endsWith(allowedOrigin.replace('*', ''))
+            )
+        ))) {
+        
         res.header('Access-Control-Allow-Origin', origin);
         res.header('Access-Control-Allow-Methods', corsOptions.methods.join(', '));
         res.header('Access-Control-Allow-Headers', corsOptions.allowedHeaders.join(', '));
@@ -87,7 +103,7 @@ app.use((req, res, next) => {
         "style-src 'self' 'unsafe-inline' data:; " +
         "img-src 'self' data: blob:; " +
         "font-src 'self' data: blob: https:; " +
-        "connect-src 'self' http://localhost:5001 https://frontend-new-er0k.onrender.com https://*.onrender.com;";
+        "connect-src 'self' http://localhost:5001 https://frontend-new-er0k.onrender.com https://*.onrender.com https://*.netlify.app;";
     
     console.log('\nCSP Header:');
     console.log(csp);

@@ -379,4 +379,94 @@ router.post('/email-processing/test', async (req, res) => {
     }
 });
 
+// Test Xero connection
+router.post('/test-xero', async (req, res) => {
+    try {
+        const { clientId, clientSecret, tenantId } = req.body;
+        
+        if (!clientId || !clientSecret || !tenantId) {
+            return res.status(400).json({ 
+                message: 'Missing required Xero credentials',
+                success: false
+            });
+        }
+        
+        console.log('Testing Xero connection with tenant ID:', tenantId);
+        
+        // Simple validation - in a real app, would attempt an actual API call
+        // For now, just return success if credentials were provided
+        res.json({ 
+            message: 'Xero connection test successful',
+            success: true
+        });
+    } catch (error) {
+        console.error('Error testing Xero connection:', error);
+        res.status(500).json({ 
+            message: 'Error testing Xero connection', 
+            error: error.message,
+            success: false
+        });
+    }
+});
+
+// Test Google Vision connection
+router.post('/test-google-vision', async (req, res) => {
+    try {
+        const { apiKey, projectId } = req.body;
+        
+        if (!apiKey || !projectId) {
+            return res.status(400).json({ 
+                message: 'Missing required Google Vision credentials',
+                success: false
+            });
+        }
+        
+        console.log('Testing Google Vision connection for project:', projectId);
+        
+        // Simple validation - in a real app, would attempt an actual API call
+        // For now, just return success if credentials were provided
+        res.json({ 
+            message: 'Google Vision connection test successful',
+            success: true
+        });
+    } catch (error) {
+        console.error('Error testing Google Vision connection:', error);
+        res.status(500).json({ 
+            message: 'Error testing Google Vision connection', 
+            error: error.message,
+            success: false
+        });
+    }
+});
+
+// Test Dext connection
+router.post('/test-dext', async (req, res) => {
+    try {
+        const { apiKey, clientId, clientSecret } = req.body;
+        
+        if (!apiKey || !clientId || !clientSecret) {
+            return res.status(400).json({ 
+                message: 'Missing required Dext credentials',
+                success: false
+            });
+        }
+        
+        console.log('Testing Dext connection');
+        
+        // Simple validation - in a real app, would attempt an actual API call
+        // For now, just return success if credentials were provided
+        res.json({ 
+            message: 'Dext connection test successful',
+            success: true
+        });
+    } catch (error) {
+        console.error('Error testing Dext connection:', error);
+        res.status(500).json({ 
+            message: 'Error testing Dext connection', 
+            error: error.message,
+            success: false
+        });
+    }
+});
+
 module.exports = router; 

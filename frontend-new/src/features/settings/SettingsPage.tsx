@@ -109,6 +109,11 @@ const SettingsPage: React.FC = () => {
     { text: 'API Settings', icon: <SettingsIcon />, path: '/settings/api' },
   ];
 
+  const [xeroTestStatus, setXeroTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [xeroTestMessage, setXeroTestMessage] = useState('');
+  const [googleVisionTestStatus, setGoogleVisionTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [googleVisionTestMessage, setGoogleVisionTestMessage] = useState('');
+
   useEffect(() => {
     if (status === 'idle') {
       dispatch(fetchSettings());
@@ -157,13 +162,24 @@ const SettingsPage: React.FC = () => {
 
   const handleTestXeroConnection = async () => {
     try {
-      await dispatch(testXeroConnection({
+      setXeroTestStatus('testing');
+      const result = await dispatch(testXeroConnection({
         clientId: config.xeroClientId,
         clientSecret: config.xeroClientSecret,
         tenantId: config.xeroTenantId
       })).unwrap();
+      
+      if (result && result.success) {
+        setXeroTestStatus('success');
+        setXeroTestMessage(result.message || 'Connection test successful');
+      } else {
+        setXeroTestStatus('error');
+        setXeroTestMessage((result && result.message) || 'Connection test failed');
+      }
     } catch (error) {
       console.error('Failed to test Xero connection:', error);
+      setXeroTestStatus('error');
+      setXeroTestMessage('Connection test failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
@@ -181,12 +197,23 @@ const SettingsPage: React.FC = () => {
 
   const handleTestGoogleVisionConnection = async () => {
     try {
-      await dispatch(testGoogleVisionConnection({
+      setGoogleVisionTestStatus('testing');
+      const result = await dispatch(testGoogleVisionConnection({
         apiKey: config.googleVisionApiKey,
         projectId: config.googleVisionProjectId
       })).unwrap();
+      
+      if (result && result.success) {
+        setGoogleVisionTestStatus('success');
+        setGoogleVisionTestMessage(result.message || 'Connection test successful');
+      } else {
+        setGoogleVisionTestStatus('error');
+        setGoogleVisionTestMessage((result && result.message) || 'Connection test failed');
+      }
     } catch (error) {
       console.error('Failed to test Google Vision connection:', error);
+      setGoogleVisionTestStatus('error');
+      setGoogleVisionTestMessage('Connection test failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
@@ -268,14 +295,31 @@ const SettingsPage: React.FC = () => {
                     </Grid>
 
                     <Grid item xs={12}>
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, alignItems: 'center', gap: 2 }}>
+                        {xeroTestStatus === 'success' && (
+                          <Alert severity="success" sx={{ flexGrow: 1 }}>
+                            {xeroTestMessage}
+                          </Alert>
+                        )}
+                        {xeroTestStatus === 'error' && (
+                          <Alert severity="error" sx={{ flexGrow: 1 }}>
+                            {xeroTestMessage}
+                          </Alert>
+                        )}
                         <Button
                           variant="outlined"
                           color="primary"
                           onClick={handleTestXeroConnection}
-                          disabled={!config.xeroClientId || !config.xeroClientSecret || !config.xeroTenantId}
+                          disabled={!config.xeroClientId || !config.xeroClientSecret || !config.xeroTenantId || xeroTestStatus === 'testing'}
                         >
-                          Test Xero Connection
+                          {xeroTestStatus === 'testing' ? (
+                            <>
+                              <CircularProgress size={24} sx={{ mr: 1 }} />
+                              Testing...
+                            </>
+                          ) : (
+                            'Test Xero Connection'
+                          )}
                         </Button>
                       </Box>
                     </Grid>
@@ -425,14 +469,31 @@ const SettingsPage: React.FC = () => {
                     </Grid>
 
                     <Grid item xs={12}>
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, alignItems: 'center', gap: 2 }}>
+                        {googleVisionTestStatus === 'success' && (
+                          <Alert severity="success" sx={{ flexGrow: 1 }}>
+                            {googleVisionTestMessage}
+                          </Alert>
+                        )}
+                        {googleVisionTestStatus === 'error' && (
+                          <Alert severity="error" sx={{ flexGrow: 1 }}>
+                            {googleVisionTestMessage}
+                          </Alert>
+                        )}
                         <Button
                           variant="outlined"
                           color="primary"
                           onClick={handleTestGoogleVisionConnection}
-                          disabled={!config.googleVisionApiKey || !config.googleVisionProjectId}
+                          disabled={!config.googleVisionApiKey || !config.googleVisionProjectId || googleVisionTestStatus === 'testing'}
                         >
-                          Test Google Vision Connection
+                          {googleVisionTestStatus === 'testing' ? (
+                            <>
+                              <CircularProgress size={24} sx={{ mr: 1 }} />
+                              Testing...
+                            </>
+                          ) : (
+                            'Test Google Vision Connection'
+                          )}
                         </Button>
                       </Box>
                     </Grid>
@@ -640,14 +701,31 @@ const SettingsPage: React.FC = () => {
                   </Grid>
 
                   <Grid item xs={12}>
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, alignItems: 'center', gap: 2 }}>
+                      {xeroTestStatus === 'success' && (
+                        <Alert severity="success" sx={{ flexGrow: 1 }}>
+                          {xeroTestMessage}
+                        </Alert>
+                      )}
+                      {xeroTestStatus === 'error' && (
+                        <Alert severity="error" sx={{ flexGrow: 1 }}>
+                          {xeroTestMessage}
+                        </Alert>
+                      )}
                       <Button
                         variant="outlined"
                         color="primary"
                         onClick={handleTestXeroConnection}
-                        disabled={!config.xeroClientId || !config.xeroClientSecret || !config.xeroTenantId}
+                        disabled={!config.xeroClientId || !config.xeroClientSecret || !config.xeroTenantId || xeroTestStatus === 'testing'}
                       >
-                        Test Xero Connection
+                        {xeroTestStatus === 'testing' ? (
+                          <>
+                            <CircularProgress size={24} sx={{ mr: 1 }} />
+                            Testing...
+                          </>
+                        ) : (
+                          'Test Xero Connection'
+                        )}
                       </Button>
                     </Box>
                   </Grid>
@@ -797,14 +875,31 @@ const SettingsPage: React.FC = () => {
                   </Grid>
 
                   <Grid item xs={12}>
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, alignItems: 'center', gap: 2 }}>
+                      {googleVisionTestStatus === 'success' && (
+                        <Alert severity="success" sx={{ flexGrow: 1 }}>
+                          {googleVisionTestMessage}
+                        </Alert>
+                      )}
+                      {googleVisionTestStatus === 'error' && (
+                        <Alert severity="error" sx={{ flexGrow: 1 }}>
+                          {googleVisionTestMessage}
+                        </Alert>
+                      )}
                       <Button
                         variant="outlined"
                         color="primary"
                         onClick={handleTestGoogleVisionConnection}
-                        disabled={!config.googleVisionApiKey || !config.googleVisionProjectId}
+                        disabled={!config.googleVisionApiKey || !config.googleVisionProjectId || googleVisionTestStatus === 'testing'}
                       >
-                        Test Google Vision Connection
+                        {googleVisionTestStatus === 'testing' ? (
+                          <>
+                            <CircularProgress size={24} sx={{ mr: 1 }} />
+                            Testing...
+                          </>
+                        ) : (
+                          'Test Google Vision Connection'
+                        )}
                       </Button>
                     </Box>
                   </Grid>

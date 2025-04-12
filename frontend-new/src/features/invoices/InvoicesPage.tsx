@@ -372,9 +372,9 @@ const InvoicesPage: React.FC = () => {
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
-          count={pagination.total}
-          rowsPerPage={pagination.limit}
-          page={pagination.page - 1}
+          count={pagination?.total || 0}
+          rowsPerPage={pagination?.limit || 10}
+          page={(pagination?.page || 1) - 1}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
         />

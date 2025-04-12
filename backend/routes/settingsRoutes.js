@@ -444,12 +444,12 @@ router.post('/test-xero', async (req, res) => {
         await settings.save();
         console.log('Xero settings saved');
         
-        // Simple validation - in a real app, would attempt an actual API call
-        // For now, just return success if credentials were provided
-        res.json({ 
-            message: 'Xero connection test successful',
-            success: true
-        });
+        // Use the XeroService to test the connection
+        const xeroService = require('../services/xeroService');
+        await xeroService.initialize(); // Re-initialize with new settings
+        const testResult = await xeroService.testConnection();
+        
+        return res.json(testResult);
     } catch (error) {
         console.error('Error testing Xero connection:', error);
         res.status(500).json({ 
@@ -496,12 +496,12 @@ router.post('/test-google-vision', async (req, res) => {
         await settings.save();
         console.log('Google Vision settings saved');
         
-        // Simple validation - in a real app, would attempt an actual API call
-        // For now, just return success if credentials were provided
-        res.json({ 
-            message: 'Google Vision connection test successful',
-            success: true
-        });
+        // Use the GoogleVisionService to test the connection
+        const googleVisionService = require('../services/googleVisionService');
+        await googleVisionService.initialize(); // Re-initialize with new settings
+        const testResult = await googleVisionService.testConnection();
+        
+        return res.json(testResult);
     } catch (error) {
         console.error('Error testing Google Vision connection:', error);
         res.status(500).json({ 

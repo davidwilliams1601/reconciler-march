@@ -1,5 +1,6 @@
 const express = require('express');
 const Invoice = require('../models/Invoice');
+const reconciliationService = require('../services/reconciliationService');
 
 const router = express.Router();
 
@@ -62,27 +63,18 @@ async function generateTestData() {
 // GET /api/dashboard/stats
 router.get('/stats', async (req, res) => {
     try {
+        // Initialize the reconciliation service if needed
+        await reconciliationService.initialize();
+        
         // Generate test data if none exists
         await generateTestData();
 
-        // Get real statistics
-        const totalInvoices = await Invoice.countDocuments();
-        const pendingReview = await Invoice.countDocuments({ status: 'review' });
-        const processedInvoices = await Invoice.countDocuments({ status: 'approved' });
-        const totalValueAgg = await Invoice.aggregate([
-            { $group: { _id: null, total: { $sum: '$amount' } } }
-        ]);
-        const totalValue = totalValueAgg.length > 0 ? totalValueAgg[0].total : 0;
-
-        // Calculate minutes saved (1 minute per processed invoice)
-        const minutesSaved = processedInvoices;
-
-        const stats = {
-            totalInvoices,
-            pendingReview,
-            totalValue,
-            minutesSaved
-        };
+        // Get stats from the reconciliation service
+        const stats = await reconciliationService.getDashboardStats();
+        
+        if (stats.error) {
+            throw new Error(stats.error);
+        }
         
         console.log('Sending dashboard stats:', stats);
         res.json(stats);

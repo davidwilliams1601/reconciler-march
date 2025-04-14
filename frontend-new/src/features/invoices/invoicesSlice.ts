@@ -95,6 +95,7 @@ export interface Invoice {
     matchedAt?: string;
     status: 'pending' | 'matched' | 'no_match' | 'multiple_matches';
   };
+  reconciled: boolean;
   createdAt: string;
   updatedAt: string;
 }

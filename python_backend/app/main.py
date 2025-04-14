@@ -20,7 +20,6 @@ from app.api.invoices import router as invoices_router
 from app.api.dashboard import router as dashboard_router
 from app.api.cost_centers import router as cost_centers_router
 from app.api.upload import router as upload_router
-from app.api.xero import router as xero_router
 from app.api.email_processing import router as email_processing_router
 from app.api.email_processing import process_emails_and_create_invoices
 from app.api.ml import router as ml_router
@@ -104,9 +103,7 @@ async def health_check():
     env_info = {
         "FRONTEND_URL": os.environ.get("FRONTEND_URL", "not set"),
         "DATABASE_URL": os.environ.get("DATABASE_URL", "not set").replace("://", "://***:***@"),
-        "XERO_CLIENT_ID": bool(os.environ.get("XERO_CLIENT_ID")),
-        "XERO_CLIENT_SECRET": bool(os.environ.get("XERO_CLIENT_SECRET")),
-        "XERO_REDIRECT_URI": os.environ.get("XERO_REDIRECT_URI"),
+        "GOOGLE_VISION_API_KEY": bool(os.environ.get("GOOGLE_VISION_API_KEY")),
     }
     
     return {
@@ -136,9 +133,6 @@ logger.info("Registered cost_centers_router at /api/cost-centers")
 
 app.include_router(upload_router, prefix="/api/upload", tags=["File Upload"])
 logger.info("Registered upload_router at /api/upload")
-
-app.include_router(xero_router, prefix="/api/xero", tags=["Xero Integration"])
-logger.info("Registered xero_router at /api/xero")
 
 app.include_router(email_processing_router, prefix="/api/email-processing", tags=["Email Processing"])
 logger.info("Registered email_processing_router at /api/email-processing")

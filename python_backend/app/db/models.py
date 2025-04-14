@@ -48,16 +48,6 @@ class OrganizationSettings(Base):
     id = Column(String, primary_key=True, index=True, default=generate_uuid)
     organization_id = Column(String, ForeignKey("organizations.id"), unique=True)
     
-    # Xero integration settings
-    xero_client_id = Column(String, nullable=True)
-    xero_client_secret = Column(String, nullable=True)
-    xero_tenant_id = Column(String, nullable=True)
-    xero_tenant_name = Column(String, nullable=True)
-    xero_refresh_token = Column(String, nullable=True)
-    xero_access_token = Column(String, nullable=True)
-    xero_token_expiry = Column(DateTime, nullable=True)
-    xero_redirect_uri = Column(String, nullable=True)
-    
     # Google Vision settings
     google_vision_api_key = Column(String, nullable=True)
     
@@ -65,12 +55,13 @@ class OrganizationSettings(Base):
     reconciliation_confidence_threshold = Column(Float, default=0.9)
     auto_reconcile = Column(Boolean, default=False)
     
-    # Email processing settings
+    # Email settings
     email_enabled = Column(Boolean, default=False)
     email_address = Column(String, nullable=True)
     email_password = Column(String, nullable=True)
     email_server = Column(String, nullable=True)
     
+    # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -82,35 +73,25 @@ class Invoice(Base):
     __tablename__ = "invoices"
 
     id = Column(String, primary_key=True, index=True, default=generate_uuid)
-    organization_id = Column(String, ForeignKey("organizations.id"))
-    
-    # Invoice details
+    organization_id = Column(String, ForeignKey("organizations.id"), index=True)
     invoice_number = Column(String, index=True)
     vendor = Column(String, index=True)
     amount = Column(Float)
     currency = Column(String, default="GBP")
     issue_date = Column(DateTime)
     due_date = Column(DateTime, nullable=True)
-    status = Column(String, default="pending")  # pending, review, approved, reconciled, rejected
-    
-    # OCR and processing data
+    status = Column(String, default="pending")  # pending, review, approved, reconciled
     file_path = Column(String, nullable=True)
     ocr_data = Column(JSON, nullable=True)
     ocr_confidence = Column(Float, nullable=True)
-    
-    # Cost center classification
     cost_center = Column(String, nullable=True)
     cost_center_confidence = Column(Float, nullable=True)
     cost_center_manually_set = Column(Boolean, default=False)
-    
-    # Xero reconciliation
-    xero_invoice_id = Column(String, nullable=True)
-    xero_contact_id = Column(String, nullable=True)
-    xero_status = Column(String, nullable=True)
     reconciled = Column(Boolean, default=False)
     reconciled_at = Column(DateTime, nullable=True)
     reconciled_by = Column(String, ForeignKey("users.id"), nullable=True)
     
+    # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

@@ -69,9 +69,6 @@ class Organization(OrganizationInDB):
 
 # Organization Settings Schemas
 class OrganizationSettingsBase(BaseModel):
-    xero_client_id: Optional[str] = None
-    xero_client_secret: Optional[str] = None
-    xero_tenant_id: Optional[str] = None
     google_vision_api_key: Optional[str] = None
     reconciliation_confidence_threshold: float = 0.9
     auto_reconcile: bool = False
@@ -84,11 +81,6 @@ class OrganizationSettingsCreate(OrganizationSettingsBase):
     email_password: Optional[str] = None
 
 class OrganizationSettingsUpdate(BaseModel):
-    xero_client_id: Optional[str] = None
-    xero_client_secret: Optional[str] = None
-    xero_tenant_id: Optional[str] = None
-    xero_refresh_token: Optional[str] = None
-    xero_token_expiry: Optional[datetime] = None
     google_vision_api_key: Optional[str] = None
     reconciliation_confidence_threshold: Optional[float] = None
     auto_reconcile: Optional[bool] = None
@@ -110,7 +102,7 @@ class OrganizationSettings(OrganizationSettingsInDB):
     # We exclude sensitive fields in responses
     class Config:
         orm_mode = True
-        exclude = {"xero_client_secret", "xero_refresh_token", "email_password"}
+        exclude = {"email_password"}
 
 # Invoice Schemas
 class InvoiceBase(BaseModel):

@@ -9,11 +9,8 @@ const DashboardPage: React.FC = () => {
   const { stats, status, error } = useAppSelector((state) => state.dashboard);
 
   useEffect(() => {
-    // Only fetch if we don't have stats already or if there was an error
-    if (!stats || error) {
-      dispatch(fetchDashboardStats());
-    }
-  }, [dispatch, stats, error]);
+    dispatch(fetchDashboardStats());
+  }, [dispatch]);
 
   // Fallback data in case API fails
   const fallbackStats = {
@@ -24,10 +21,10 @@ const DashboardPage: React.FC = () => {
 
   // Use redux state if available, otherwise use fallback data
   const displayStats = {
-    totalProcessed: stats?.totalInvoices || fallbackStats.totalInvoices,
+    totalProcessed: stats?.processedInvoices || fallbackStats.totalInvoices,
     inReview: stats?.pendingInvoices || fallbackStats.pendingInvoices,
-    moneySaved: stats?.totalInvoices && stats.pendingInvoices 
-      ? (stats.totalInvoices + stats.pendingInvoices) 
+    moneySaved: stats?.processedInvoices && stats.pendingInvoices 
+      ? (stats.processedInvoices + stats.pendingInvoices) 
       : fallbackStats.moneySaved,
   };
 
@@ -112,15 +109,15 @@ const DashboardPage: React.FC = () => {
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
             <CircularProgress size={24} />
           </Box>
-        ) : stats?.recentActivity && stats.recentActivity.length > 0 ? (
+        ) : stats?.recentInvoices && stats.recentInvoices.length > 0 ? (
           <Box>
-            {stats.recentActivity.map((activity, index) => (
-              <Box key={activity.id || index} sx={{ mb: 1, py: 1, borderBottom: '1px solid #eee' }}>
+            {stats.recentInvoices.map((invoice, index) => (
+              <Box key={invoice.id || index} sx={{ mb: 1, py: 1, borderBottom: '1px solid #eee' }}>
                 <Typography variant="body1">
-                  {activity.description || activity.type}
+                  {invoice.vendor} - {invoice.invoice_number} ({invoice.currency} {invoice.amount.toFixed(2)})
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {new Date(activity.timestamp).toLocaleString()}
+                  {new Date(invoice.created_at).toLocaleString()} - {invoice.status}
                 </Typography>
               </Box>
             ))}

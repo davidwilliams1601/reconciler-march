@@ -1,6 +1,13 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../services/api';
+import { 
+  invoiceService, 
+  Invoice as BackendInvoice, 
+  InvoiceFilterParams, 
+  PaginatedResponse 
+} from '../../services/invoiceService';
 
+// Define the frontend invoice interface
 export interface Invoice {
   _id: string;
   invoiceNumber: string;
@@ -133,47 +140,144 @@ export interface FetchInvoicesParams {
   toDate?: string;
 }
 
+// Map frontend filter params to backend filter params
+function mapFiltersToBackend(params: any): InvoiceFilterParams {
+  const mappedParams: InvoiceFilterParams = {
+    page: params.page,
+    limit: params.limit,
+  };
+
+  if (params.status) mappedParams.status = params.status;
+  if (params.vendor) mappedParams.vendor = params.vendor;
+  if (params.fromDate) mappedParams.date_from = params.fromDate;
+  if (params.toDate) mappedParams.date_to = params.toDate;
+  if (params.invoiceNumber) mappedParams.invoice_number = params.invoiceNumber;
+  if (params.costCenter) mappedParams.cost_center_code = params.costCenter;
+
+  return mappedParams;
+}
+
+// Map backend invoice to frontend format
+function mapBackendToFrontendInvoice(backendInvoice: BackendInvoice): Invoice {
+  return {
+    _id: backendInvoice.id,
+    invoiceNumber: backendInvoice.invoice_number,
+    vendor: backendInvoice.vendor,
+    amount: backendInvoice.amount,
+    currency: backendInvoice.currency,
+    status: backendInvoice.status as any,
+    issueDate: backendInvoice.issue_date,
+    dueDate: backendInvoice.due_date || '',
+    costCenter: backendInvoice.cost_center ? {
+      code: backendInvoice.cost_center,
+      name: backendInvoice.cost_center,
+      confidence: backendInvoice.cost_center_confidence || 0,
+      predictedAt: backendInvoice.created_at,
+      manuallySet: backendInvoice.cost_center_manually_set,
+    } : {} as any,
+    categorization: {
+      category: '',
+      subcategory: '',
+      confidence: 0,
+      predictedAt: backendInvoice.created_at,
+      manuallySet: false,
+      keywords: []
+    },
+    lineItems: [],
+    file: {
+      originalName: backendInvoice.file_path?.split('/').pop() || 'unknown',
+      mimeType: 'application/pdf',
+      size: 0
+    },
+    ocrResults: backendInvoice.ocr_data || {
+      confidence: 0,
+      rawText: '',
+      processedAt: '',
+      extractedData: {
+        detectedInvoiceNumber: '',
+        detectedVendor: '',
+        detectedAmount: 0,
+        detectedDate: '',
+        confidence: {
+          invoiceNumber: 0,
+          vendor: 0,
+          amount: 0,
+          date: 0
+        }
+      }
+    },
+    xeroMatching: {
+      matchedTransactionId: backendInvoice.xero_invoice_id,
+      status: backendInvoice.reconciled ? 'matched' : 'pending',
+      matchedAt: backendInvoice.reconciled_at,
+    },
+    reconciled: backendInvoice.reconciled,
+    createdAt: backendInvoice.created_at,
+    updatedAt: backendInvoice.updated_at
+  };
+}
+
 export const fetchInvoices = createAsyncThunk(
   'invoices/fetchInvoices',
-  async (params?: FetchInvoicesParams) => {
-    const queryParams = new URLSearchParams();
-    if (params) {
-      if (params.page) queryParams.append('page', params.page.toString());
-      if (params.limit) queryParams.append('limit', params.limit.toString());
-      if (params.status) queryParams.append('status', params.status);
-      if (params.vendor) queryParams.append('vendor', params.vendor);
-      if (params.fromDate) queryParams.append('fromDate', params.fromDate);
-      if (params.toDate) queryParams.append('toDate', params.toDate);
-    }
+  async (params?: any) => {
+    // Transform params to match backend expectations
+    const backendParams = mapFiltersToBackend(params || {});
+    const response = await invoiceService.getInvoices(backendParams);
     
-    const queryString = queryParams.toString();
-    const url = `/api/invoices${queryString ? `?${queryString}` : ''}`;
-    
-    const response = await api.get(url);
-    return response.data;
+    // Map response to match frontend expectations
+    return {
+      data: response.items.map(mapBackendToFrontendInvoice),
+      page: response.page,
+      limit: response.size,
+      total: response.total,
+      totalPages: response.pages
+    };
   }
 );
 
 export const addInvoice = createAsyncThunk(
   'invoices/addInvoice',
-  async (invoice: Omit<Invoice, '_id' | 'createdAt' | 'updatedAt'>, { rejectWithValue }) => {
+  async (invoiceData: any, { rejectWithValue }) => {
     try {
-      const response = await api.post('/api/invoices', invoice);
-      return response.data;
+      const invoice = await invoiceService.createInvoice({
+        invoice_number: invoiceData.invoiceNumber,
+        vendor: invoiceData.vendor,
+        amount: invoiceData.amount,
+        currency: invoiceData.currency,
+        issue_date: invoiceData.issueDate,
+        due_date: invoiceData.dueDate,
+        status: invoiceData.status,
+        cost_center: invoiceData.costCenter?.code,
+      });
+      
+      // Map to frontend format
+      return mapBackendToFrontendInvoice(invoice);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to add invoice');
+      return rejectWithValue(err.response?.data?.detail || 'Failed to add invoice');
     }
   }
 );
 
 export const updateInvoice = createAsyncThunk(
   'invoices/updateInvoice',
-  async ({ id, invoice }: { id: string; invoice: Partial<Invoice> }, { rejectWithValue }) => {
+  async ({ id, invoice }: { id: string; invoice: any }, { rejectWithValue }) => {
     try {
-      const response = await api.put(`/api/invoices/${id}`, invoice);
-      return response.data;
+      const updatedInvoice = await invoiceService.updateInvoice(id, {
+        invoice_number: invoice.invoiceNumber,
+        vendor: invoice.vendor,
+        amount: invoice.amount,
+        currency: invoice.currency,
+        issue_date: invoice.issueDate,
+        due_date: invoice.dueDate,
+        status: invoice.status,
+        cost_center: invoice.costCenter?.code,
+        cost_center_manually_set: invoice.costCenter?.manuallySet,
+      });
+      
+      // Map to frontend format
+      return mapBackendToFrontendInvoice(updatedInvoice);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to update invoice');
+      return rejectWithValue(err.response?.data?.detail || 'Failed to update invoice');
     }
   }
 );
@@ -183,7 +287,6 @@ export const reconcileInvoice = createAsyncThunk(
   async ({ 
     invoiceId, 
     transactionId, 
-    updateCostCenter = true 
   }: { 
     invoiceId: string; 
     transactionId: string; 
@@ -191,13 +294,12 @@ export const reconcileInvoice = createAsyncThunk(
     reference?: string;
   }, { rejectWithValue }) => {
     try {
-      const response = await api.post(`/api/invoices/${invoiceId}/reconcile`, {
-        transactionId,
-        updateCostCenter
-      });
-      return response.data.invoice;
+      const updatedInvoice = await invoiceService.reconcileInvoice(invoiceId, transactionId);
+      
+      // Map to frontend format
+      return mapBackendToFrontendInvoice(updatedInvoice);
     } catch (err: any) {
-      return rejectWithValue(err.response?.data?.message || 'Failed to reconcile invoice');
+      return rejectWithValue(err.response?.data?.detail || 'Failed to reconcile invoice');
     }
   }
 );

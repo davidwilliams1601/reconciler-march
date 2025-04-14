@@ -4,7 +4,7 @@ module.exports = function(app) {
   app.use(
     '/api',
     createProxyMiddleware({
-      target: 'http://localhost:5001', // Use your local backend port
+      target: 'http://localhost:8000', // Python FastAPI backend port
       changeOrigin: true,
       pathRewrite: {
         '^/api': '/api', // Don't rewrite paths
@@ -19,7 +19,7 @@ module.exports = function(app) {
           'Content-Type': 'application/json',
         });
         res.end(JSON.stringify({ 
-          message: 'Proxy error - Backend server may be down',
+          message: 'Proxy error - Python backend may be down',
           error: err.message 
         }));
       }

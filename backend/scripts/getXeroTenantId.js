@@ -5,7 +5,8 @@ const app = express();
 const port = 3333;
 
 async function getXeroTenantId(clientId, clientSecret) {
-    const redirectUri = `http://localhost:${port}/callback`;
+    // Use the same redirect URI format as in your Xero dashboard
+    const redirectUri = `https://reconciler-march.onrender.com/api/xero/callback`;
     
     app.get('/callback', async (req, res) => {
         try {
@@ -58,7 +59,7 @@ async function getXeroTenantId(clientId, clientSecret) {
         
         // Construct the authorization URL
         const scope = encodeURIComponent('openid profile email accounting.transactions accounting.contacts accounting.settings offline_access');
-        const authUrl = `https://login.xero.com/identity/connect/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=123`;
+        const authUrl = `https://login.xero.com/identity/connect/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=123`;
         
         console.log(`\n${authUrl}\n`);
         console.log(`2. After logging in, authorize the application.`);

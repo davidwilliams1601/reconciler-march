@@ -1,18 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import api from '../../services/api';
-
-interface DashboardStats {
-  totalInvoices: number;
-  pendingInvoices: number;
-  matchedInvoices: number;
-  totalAmount: number;
-  recentActivity: Array<{
-    id: string;
-    type: string;
-    description: string;
-    timestamp: string;
-  }>;
-}
+import dashboardService, { DashboardStats } from '../../services/dashboardService';
 
 interface DashboardState {
   stats: DashboardStats | null;
@@ -29,8 +16,7 @@ const initialState: DashboardState = {
 export const fetchDashboardStats = createAsyncThunk(
   'dashboard/fetchStats',
   async () => {
-    const response = await api.get('/api/dashboard/stats');
-    return response.data;
+    return await dashboardService.getStats();
   }
 );
 

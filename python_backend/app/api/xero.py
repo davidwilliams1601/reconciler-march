@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Form, status
 from sqlalchemy.orm import Session
 from datetime import datetime
+import os
 
 from app.core.dependencies import get_current_user, get_current_organization, get_db
 from app.services.xero_service import xero_service
@@ -242,4 +243,36 @@ async def reconcile_invoice(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error reconciling invoice in Xero: {str(e)}"
-        ) 
+        )
+
+@router.get("/debug", include_in_schema=False)
+async def debug_xero_configuration(
+    db: Session = Depends(get_db),
+    organization: Organization = Depends(get_current_organization),
+) -> Dict[str, Any]:
+    """
+    Debug endpoint to check Xero configuration.
+    Not for production use.
+    """
+    try:
+        # Get configuration values (sanitized)
+        return {
+            "client_id_configured": bool(xero_service.client_id),
+            "client_secret_configured": bool(xero_service.client_secret),
+            "redirect_uri": xero_service.redirect_uri,
+            "scope": xero_service.scope,
+            "environment_vars": {
+                "XERO_CLIENT_ID": bool(os.environ.get("XERO_CLIENT_ID")),
+                "XERO_CLIENT_SECRET": bool(os.environ.get("XERO_CLIENT_SECRET")),
+                "XERO_REDIRECT_URI": os.environ.get("XERO_REDIRECT_URI"),
+            },
+            "settings": {
+                "has_org_settings": bool(organization_settings.get_by_organization(db, organization_id=organization.id)),
+            }
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        } 

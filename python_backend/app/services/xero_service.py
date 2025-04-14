@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 import requests
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
@@ -8,23 +9,34 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db import models, crud
 
+# Set up logging
+logger = logging.getLogger(__name__)
+
 class XeroService:
     """
     Service for interacting with the Xero API.
     """
     def __init__(self):
-        self.client_id = settings.XERO_CLIENT_ID
-        self.client_secret = settings.XERO_CLIENT_SECRET
-        self.redirect_uri = settings.XERO_REDIRECT_URI
+        self.client_id = settings.XERO_CLIENT_ID or ""
+        self.client_secret = settings.XERO_CLIENT_SECRET or ""
+        self.redirect_uri = settings.XERO_REDIRECT_URI or "http://localhost:3000/xero-callback"
         self.scope = "offline_access accounting.transactions accounting.settings"
         self.auth_url = "https://login.xero.com/identity/connect/authorize"
         self.token_url = "https://identity.xero.com/connect/token"
         self.api_url = "https://api.xero.com/api.xro/2.0"
+        
+        # Log configuration state (sanitized)
+        logger.info(f"XeroService initialized with client_id configured: {bool(self.client_id)}")
+        logger.info(f"XeroService initialized with redirect_uri: {self.redirect_uri}")
     
     def get_authorization_url(self, organization_id: int) -> str:
         """
         Generate the OAuth2 authorization URL for Xero.
         """
+        if not self.client_id:
+            logger.warning("Cannot generate authorization URL: client_id not configured")
+            return f"https://example.com/mock-auth?client_id=not-configured&redirect_uri={self.redirect_uri}"
+            
         # Generate a state parameter that includes the organization ID
         state = f"org_{organization_id}"
         
@@ -38,6 +50,7 @@ class XeroService:
             f"state={state}"
         )
         
+        logger.info(f"Generated authorization URL for organization {organization_id}")
         return auth_url
     
     def exchange_code_for_token(self, code: str, organization_id: int) -> Dict[str, Any]:

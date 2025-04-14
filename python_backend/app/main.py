@@ -2,7 +2,15 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import asyncio
+import logging
 from dotenv import load_dotenv
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 # Import routers
 from app.api.auth import router as auth_router
@@ -59,15 +67,34 @@ async def health_check():
         "version": app.version
     }
 
-# Include routers
+# Include routers with logging
+logger.info("Registering API routers...")
+
 app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
+logger.info("Registered auth_router at /api/auth")
+
 app.include_router(invoices_router, prefix="/api/invoices", tags=["Invoices"])
+logger.info("Registered invoices_router at /api/invoices")
+
 app.include_router(dashboard_router, prefix="/api/dashboard", tags=["Dashboard"])
+logger.info("Registered dashboard_router at /api/dashboard")
+
 app.include_router(cost_centers_router, prefix="/api/cost-centers", tags=["Cost Centers"])
+logger.info("Registered cost_centers_router at /api/cost-centers")
+
 app.include_router(upload_router, prefix="/api/upload", tags=["File Upload"])
+logger.info("Registered upload_router at /api/upload")
+
 app.include_router(xero_router, prefix="/api/xero", tags=["Xero Integration"])
+logger.info("Registered xero_router at /api/xero")
+
 app.include_router(email_processing_router, prefix="/api/email-processing", tags=["Email Processing"])
+logger.info("Registered email_processing_router at /api/email-processing")
+
 app.include_router(ml_router, prefix="/api/ml", tags=["Machine Learning"])
+logger.info("Registered ml_router at /api/ml")
+
+logger.info("All routers registered successfully")
 
 # Setup background tasks
 @app.on_event("startup")

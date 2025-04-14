@@ -26,6 +26,7 @@ from app.api.settings import router as settings_router
 
 # Import database
 from app.db.database import engine, Base, get_db
+from app.db.migration import run_migrations, create_initial_organization
 
 # Import task scheduler
 from app.core.scheduler import scheduler
@@ -35,6 +36,12 @@ load_dotenv()
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
+
+# Run migrations to update existing tables
+run_migrations()
+
+# Create initial organization if needed
+create_initial_organization()
 
 # Create FastAPI app
 app = FastAPI(

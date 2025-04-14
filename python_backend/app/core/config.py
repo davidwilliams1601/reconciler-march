@@ -10,6 +10,9 @@ class Settings:
     PROJECT_NAME: str = "Invoice Reconciler API"
     API_V1_STR: str = "/api"
     
+    # Frontend URL
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "https://frontend-new-er0k.onrender.com")
+    
     # Database settings
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./invoicereconciler.db")
     

@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Form, status
 from sqlalchemy.orm import Session
 from datetime import datetime
 import os
+import logging
+import traceback
 
 from app.core.dependencies import get_current_user, get_current_organization, get_db
 from app.services.xero_service import xero_service
@@ -10,6 +12,8 @@ from app.core.crud_organization import organization_settings
 from app.db.models import User, Organization
 
 router = APIRouter()
+
+logger = logging.getLogger(__name__)
 
 @router.get("/status")
 async def check_xero_status(
@@ -58,16 +62,46 @@ async def get_auth_url(
     Get the Xero OAuth2 authorization URL.
     """
     try:
+        # Make sure we have a valid organization
+        if not organization or not organization.id:
+            logger.warning("No valid organization found when getting auth URL")
+            return {
+                "auth_url": "#",
+                "message": "No valid organization found. Please configure your organization first."
+            }
+            
+        # Try to get organization-specific redirect URI
+        org_settings = organization_settings.get_by_organization(db, organization_id=organization.id)
+        
+        # Set default redirect URI based on request
+        if org_settings and not org_settings.xero_redirect_uri:
+            # Set a default redirect URI if none is configured
+            base_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+            default_redirect_uri = f"{base_url}/xero-callback"
+            
+            # Update the settings with default redirect URI
+            organization_settings.update(
+                db,
+                db_obj=org_settings,
+                obj_in={"xero_redirect_uri": default_redirect_uri}
+            )
+            
+            logger.info(f"Set default redirect URI: {default_redirect_uri}")
+            
+        # Get auth URL
         auth_url = xero_service.get_authorization_url(organization.id)
+        
         return {
             "auth_url": auth_url,
             "message": "Please visit this URL to authorize access to your Xero account."
         }
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error generating authorization URL: {str(e)}"
-        )
+        logger.error(f"Error generating authorization URL: {str(e)}", exc_info=True)
+        # Return a mock URL for development and to prevent breaking the frontend
+        return {
+            "auth_url": "#",
+            "message": f"Error: {str(e)}. Please check your Xero configuration settings."
+        }
 
 @router.post("/token")
 async def exchange_auth_code(
@@ -271,8 +305,51 @@ async def debug_xero_configuration(
             }
         }
     except Exception as e:
-        import traceback
         return {
             "error": str(e),
             "traceback": traceback.format_exc()
+        }
+
+@router.get("/callback")
+async def xero_callback(
+    code: str,
+    state: Optional[str] = None,
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    """
+    Handle the callback from Xero OAuth2 authorization.
+    This is called by the redirect URI after the user authorizes the application.
+    """
+    try:
+        # Extract organization ID from state parameter
+        organization_id = None
+        if state and state.startswith("org_"):
+            organization_id = state[4:]
+        
+        if not organization_id:
+            logger.error("No organization ID found in state parameter")
+            return {
+                "success": False,
+                "message": "Invalid state parameter. Cannot identify your organization."
+            }
+        
+        # Exchange the authorization code for tokens
+        token_set = xero_service.exchange_code_for_token(code, organization_id)
+        
+        # Redirect to the dashboard or a success page
+        frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+        redirect_url = f"{frontend_url}/settings/xero?success=true"
+        
+        return {
+            "success": True,
+            "message": "Successfully connected to Xero",
+            "token_set": token_set,
+            "redirect_url": redirect_url
+        }
+    except Exception as e:
+        logger.error(f"Error in Xero callback: {str(e)}", exc_info=True)
+        return {
+            "success": False,
+            "message": f"Error: {str(e)}",
+            "redirect_url": f"{os.environ.get('FRONTEND_URL', 'http://localhost:3000')}/settings/xero?error=true"
         } 

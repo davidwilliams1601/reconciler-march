@@ -17,6 +17,35 @@ console.log('NODE_ENV:', process.env.NODE_ENV);
 const MOCK_MODE = process.env.REACT_APP_MOCK_MODE === 'true' || process.env.NODE_ENV === 'development';
 console.log('MOCK_MODE:', MOCK_MODE);
 
+// Determine if the backend is available
+let backendIsDown = false;
+
+// Function to check if backend is available
+const checkBackendAvailability = async () => {
+  try {
+    const response = await fetch(`${getBaseUrl()}/health`, { 
+      method: 'HEAD',
+      mode: 'no-cors'
+    });
+    backendIsDown = false;
+    console.log('Backend is available');
+  } catch (error) {
+    backendIsDown = true;
+    console.log('Backend appears to be down, enabling fallback mode');
+  }
+};
+
+// Check backend availability on startup
+checkBackendAvailability();
+
+// Periodically check backend availability when it's marked as down
+setInterval(() => {
+  if (backendIsDown) {
+    console.log('Attempting to reconnect to backend...');
+    checkBackendAvailability();
+  }
+}, 30000); // Check every 30 seconds
+
 // Determine the base URL based on environment
 const getBaseUrl = () => {
   if (process.env.NODE_ENV === 'development') {
@@ -68,52 +97,59 @@ api.interceptors.response.use(
         data: error.response.data,
       });
 
-      // Handle 502 errors (Bad Gateway) or 404 errors (Not Found)
-      if (error.response.status === 502 || error.response.status === 404) {
-        console.warn(`Backend server returned ${error.response.status}. Using mock data if available.`);
+      // If we get a 503 or 502, mark the backend as down for future requests
+      if (error.response.status === 503 || error.response.status === 502) {
+        backendIsDown = true;
+        console.warn('Backend appears to be down or hibernating. Enabling fallback mode.');
+      }
+
+      // Handle errors when backend is down or in mock mode
+      if ((error.response.status === 502 || error.response.status === 404 || 
+           error.response.status === 503) && (MOCK_MODE || backendIsDown)) {
+        console.warn(`Backend server returned ${error.response.status}. Using mock data.`);
         
-        // Check if we're in mock mode and can provide mock data
-        if (MOCK_MODE) {
-          const url = error.config.url;
-          
-          // Return mock data based on the API endpoint
-          if (url && url.includes('/api/invoices')) {
-            console.info('Using mock invoice data');
-            return Promise.resolve({ data: mockInvoices });
-          }
-          
-          if (url && url.includes('/api/dashboard/stats')) {
-            console.info('Using mock dashboard stats');
-            return Promise.resolve({ data: mockDashboardStats });
-          }
-          
-          if (url && url.includes('/api/settings')) {
-            console.info('Using mock settings data');
-            return Promise.resolve({ data: mockSettings });
-          }
-          
-          if (url && url.includes('/api/organization')) {
-            console.info('Using mock organization data');
-            return Promise.resolve({ data: mockOrganization });
-          }
-          
-          if (url && url.includes('/api/email-processing')) {
-            console.info('Using mock email processing data');
-            return Promise.resolve({ data: mockEmailProcessing });
-          }
-          
-          if (url && url.includes('/api/cost-centers')) {
-            console.info('Using mock cost centers data');
-            return Promise.resolve({ data: mockCostCenters });
-          }
+        const url = error.config.url;
+        
+        // Return mock data based on the API endpoint
+        if (url && url.includes('/api/invoices')) {
+          console.info('Using mock invoice data');
+          return Promise.resolve({ data: mockInvoices });
+        }
+        
+        if (url && url.includes('/api/dashboard/stats')) {
+          console.info('Using mock dashboard stats');
+          return Promise.resolve({ data: mockDashboardStats });
+        }
+        
+        if (url && url.includes('/api/settings')) {
+          console.info('Using mock settings data');
+          return Promise.resolve({ data: mockSettings });
+        }
+        
+        if (url && url.includes('/api/organization')) {
+          console.info('Using mock organization data');
+          return Promise.resolve({ data: mockOrganization });
+        }
+        
+        if (url && url.includes('/api/email-processing')) {
+          console.info('Using mock email processing data');
+          return Promise.resolve({ data: mockEmailProcessing });
+        }
+        
+        if (url && url.includes('/api/cost-centers')) {
+          console.info('Using mock cost centers data');
+          return Promise.resolve({ data: mockCostCenters });
         }
       }
     } else if (error.request) {
       // The request was made but no response was received
       console.error('API Error (No Response):', error.request);
       
-      // Check if we're in mock mode and can provide mock data
-      if (MOCK_MODE) {
+      // Mark the backend as down
+      backendIsDown = true;
+      
+      // Use mock data if in mock mode OR if backend is detected as down
+      if (MOCK_MODE || backendIsDown) {
         const url = error.config.url;
         
         // Return mock data based on the API endpoint

@@ -25,6 +25,7 @@ from app.api.email_processing import process_emails_and_create_invoices
 from app.api.ml import router as ml_router
 from app.api.settings import router as settings_router
 from app.api.test_endpoints import router as test_endpoints_router
+from app.api.xero import router as xero_router
 
 # Import database
 from app.db.database import engine, Base, get_db
@@ -60,6 +61,10 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",  # React dev server
         "https://frontend-new-er0k.onrender.com",  # Production frontend
+        os.environ.get("FRONTEND_URL", ""),  # From environment
+        os.environ.get("BACKEND_URL", ""),  # From environment
+        "https://reconciler-march.onrender.com",  # Backend URL
+        "http://localhost:8000",  # Local backend
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -142,6 +147,9 @@ logger.info("Registered ml_router at /api/ml")
 
 app.include_router(settings_router, prefix="/api/settings", tags=["Settings"])
 logger.info("Registered settings_router at /api/settings")
+
+app.include_router(xero_router, prefix="/api/xero", tags=["Xero Integration"])
+logger.info("Registered xero_router at /api/xero")
 
 app.include_router(test_endpoints_router, prefix="/api/test-endpoints", tags=["Test Endpoints"], include_in_schema=False)
 logger.info("Registered test_endpoints_router at /api/test-endpoints")

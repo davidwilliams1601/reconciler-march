@@ -2,7 +2,7 @@ import os
 import json
 import logging
 import requests
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
@@ -17,6 +17,7 @@ class XeroService:
     Service for interacting with the Xero API.
     """
     def __init__(self):
+        # Default values from global settings - will be overridden by org settings when available
         self.client_id = settings.XERO_CLIENT_ID or ""
         self.client_secret = settings.XERO_CLIENT_SECRET or ""
         self.redirect_uri = settings.XERO_REDIRECT_URI or "http://localhost:3000/xero-callback"
@@ -26,30 +27,64 @@ class XeroService:
         self.api_url = "https://api.xero.com/api.xro/2.0"
         
         # Log configuration state (sanitized)
-        logger.info(f"XeroService initialized with client_id configured: {bool(self.client_id)}")
-        logger.info(f"XeroService initialized with redirect_uri: {self.redirect_uri}")
+        logger.info(f"XeroService initialized with client_id configured from env: {bool(self.client_id)}")
+        logger.info(f"XeroService initialized with redirect_uri from env: {self.redirect_uri}")
+    
+    def _get_org_settings(self, db: Session, organization_id: int) -> Optional[models.OrganizationSettings]:
+        """Get organization settings from the database."""
+        return crud.organization_settings.get_by_organization(db, organization_id=organization_id)
+        
+    def _get_client_credentials(self, organization_id: int) -> Dict[str, str]:
+        """
+        Get the client credentials, prioritizing organization settings over global settings.
+        """
+        client_id = self.client_id
+        client_secret = self.client_secret
+        redirect_uri = self.redirect_uri
+        
+        try:
+            # Connect to the database to get org-specific settings
+            with Session() as db:
+                org_settings = self._get_org_settings(db, organization_id)
+                
+                if org_settings:
+                    logger.debug(f"Found organization settings for org {organization_id}")
+                    # Override with organization-specific values if available
+                    if org_settings.xero_client_id:
+                        client_id = org_settings.xero_client_id
+                        logger.debug("Using organization-specific client_id")
+                    
+                    if org_settings.xero_client_secret:
+                        client_secret = org_settings.xero_client_secret
+                        logger.debug("Using organization-specific client_secret")
+                    
+                    if org_settings.xero_redirect_uri:
+                        redirect_uri = org_settings.xero_redirect_uri
+                        logger.debug(f"Using organization-specific redirect_uri: {redirect_uri}")
+        except Exception as e:
+            logger.error(f"Error getting client credentials: {str(e)}")
+        
+        return {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "redirect_uri": redirect_uri
+        }
     
     def get_authorization_url(self, organization_id: int) -> str:
         """
         Generate the OAuth2 authorization URL for Xero.
         """
-        if not self.client_id:
+        # Get credentials, prioritizing organization settings
+        credentials = self._get_client_credentials(organization_id)
+        client_id = credentials["client_id"]
+        redirect_uri = credentials["redirect_uri"]
+        
+        logger.info(f"Generating auth URL with client_id: {bool(client_id)} and redirect_uri: {redirect_uri}")
+        
+        if not client_id:
             logger.warning("Cannot generate authorization URL: client_id not configured")
-            return f"https://example.com/mock-auth?client_id=not-configured&redirect_uri={self.redirect_uri}"
+            return f"https://example.com/mock-auth?client_id=not-configured&redirect_uri={redirect_uri}"
             
-        # Get organization-specific redirect URI if available
-        redirect_uri = self.redirect_uri
-        
-        # Connect to the database to get org-specific settings
-        with Session() as db:
-            org_settings = crud.organization_settings.get_by_organization(
-                db, organization_id=organization_id
-            )
-            
-            if org_settings and org_settings.xero_redirect_uri:
-                redirect_uri = org_settings.xero_redirect_uri
-                logger.info(f"Using organization-specific redirect URI: {redirect_uri}")
-        
         # Generate a state parameter that includes the organization ID
         state = f"org_{organization_id}"
         
@@ -57,7 +92,7 @@ class XeroService:
         auth_url = (
             f"{self.auth_url}?"
             f"response_type=code&"
-            f"client_id={self.client_id}&"
+            f"client_id={client_id}&"
             f"redirect_uri={redirect_uri}&"
             f"scope={self.scope}&"
             f"state={state}"
@@ -71,18 +106,13 @@ class XeroService:
         Exchange the authorization code for access and refresh tokens.
         """
         try:
-            # Get organization-specific redirect URI if available
-            redirect_uri = self.redirect_uri
+            # Get credentials, prioritizing organization settings
+            credentials = self._get_client_credentials(organization_id)
+            client_id = credentials["client_id"]
+            client_secret = credentials["client_secret"]
+            redirect_uri = credentials["redirect_uri"]
             
-            # Connect to the database to get org-specific settings
-            with Session() as db:
-                org_settings = crud.organization_settings.get_by_organization(
-                    db, organization_id=organization_id
-                )
-                
-                if org_settings and org_settings.xero_redirect_uri:
-                    redirect_uri = org_settings.xero_redirect_uri
-                    logger.info(f"Using organization-specific redirect URI for token exchange: {redirect_uri}")
+            logger.info(f"Exchanging code for token with client_id: {bool(client_id)} and redirect_uri: {redirect_uri}")
             
             # Request payload for token exchange
             payload = {
@@ -92,7 +122,7 @@ class XeroService:
             }
             
             # Basic auth with client ID and secret
-            auth = (self.client_id, self.client_secret)
+            auth = (client_id, client_secret)
             
             # Make the token request
             response = requests.post(self.token_url, data=payload, auth=auth)
@@ -112,6 +142,7 @@ class XeroService:
                 "tenant_id": token_data.get("xero_tenant_id"),
             }
         except requests.RequestException as e:
+            logger.error(f"Error exchanging code for token: {str(e)}")
             raise Exception(f"Error exchanging code for tokens: {str(e)}")
     
     def _store_tokens(self, token_data: Dict[str, Any], organization_id: int) -> None:
@@ -178,6 +209,16 @@ class XeroService:
         Refresh the Xero access token using the refresh token.
         """
         try:
+            # Get organization ID from settings
+            organization_id = org_settings.organization_id
+            
+            # Get client credentials for this organization
+            credentials = self._get_client_credentials(organization_id)
+            client_id = credentials["client_id"]
+            client_secret = credentials["client_secret"]
+            
+            logger.info(f"Refreshing token with client_id: {bool(client_id)}")
+            
             # Request payload for token refresh
             payload = {
                 "grant_type": "refresh_token",
@@ -185,7 +226,7 @@ class XeroService:
             }
             
             # Basic auth with client ID and secret
-            auth = (self.client_id, self.client_secret)
+            auth = (client_id, client_secret)
             
             # Make the token refresh request
             response = requests.post(self.token_url, data=payload, auth=auth)
@@ -210,6 +251,7 @@ class XeroService:
             
             return token_data["access_token"]
         except requests.RequestException as e:
+            logger.error(f"Error refreshing token: {str(e)}")
             raise Exception(f"Error refreshing access token: {str(e)}")
     
     def get_invoices(
@@ -224,8 +266,16 @@ class XeroService:
         Get invoices from Xero.
         """
         try:
+            # Get credentials for this org
+            credentials = self._get_client_credentials(organization_id)
+            client_id = credentials["client_id"]
+            client_secret = credentials["client_secret"]
+            
+            logger.info(f"Getting invoices with client_id: {bool(client_id)}")
+            
             # Check if Xero is configured
-            if not self.client_id or not self.client_secret:
+            if not client_id or not client_secret:
+                logger.warning("Xero not configured, returning mock invoices")
                 return self._get_mock_invoices()
                 
             # Get a valid access token
@@ -264,9 +314,11 @@ class XeroService:
             return data.get("Invoices", [])
         except requests.RequestException as e:
             # Return mock data if there's an error
+            logger.error(f"Error getting invoices: {str(e)}")
             return self._get_mock_invoices()
         except Exception as e:
             # Return mock data if there's no valid configuration
+            logger.error(f"Error in get_invoices: {str(e)}")
             return self._get_mock_invoices()
     
     def get_bank_transactions(
@@ -279,8 +331,16 @@ class XeroService:
         Get bank transactions from Xero.
         """
         try:
+            # Get credentials for this org
+            credentials = self._get_client_credentials(organization_id)
+            client_id = credentials["client_id"]
+            client_secret = credentials["client_secret"]
+            
+            logger.info(f"Getting bank transactions with client_id: {bool(client_id)}")
+            
             # Check if Xero is configured
-            if not self.client_id or not self.client_secret:
+            if not client_id or not client_secret:
+                logger.warning("Xero not configured, returning mock bank transactions")
                 return self._get_mock_bank_transactions()
             
             # Get a valid access token
@@ -315,9 +375,11 @@ class XeroService:
             return data.get("BankTransactions", [])
         except requests.RequestException as e:
             # Return mock data if there's an error
+            logger.error(f"Error getting bank transactions: {str(e)}")
             return self._get_mock_bank_transactions()
         except Exception as e:
             # Return mock data if there's no valid configuration
+            logger.error(f"Error in get_bank_transactions: {str(e)}")
             return self._get_mock_bank_transactions()
     
     def _get_tenant_id(self, organization_id: int) -> str:

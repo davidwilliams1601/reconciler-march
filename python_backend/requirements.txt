@@ -14,4 +14,5 @@ celery==5.3.1
 aiosmtplib==2.0.2
 python-dotenv==1.0.0
 pytest==7.4.2
-httpx==0.24.1 
+httpx==0.24.1
+requests==2.31.0 

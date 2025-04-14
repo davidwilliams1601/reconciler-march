@@ -13,6 +13,9 @@ class Settings:
     # Frontend URL
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "https://frontend-new-er0k.onrender.com")
     
+    # Backend URL
+    BACKEND_URL: str = os.getenv("BACKEND_URL", "https://reconciler-march.onrender.com")
+    
     # Database settings
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./invoicereconciler.db")
     

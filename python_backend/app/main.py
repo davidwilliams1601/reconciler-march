@@ -4,6 +4,8 @@ import os
 import asyncio
 import logging
 from dotenv import load_dotenv
+from datetime import datetime
+from sqlalchemy.sql import text
 
 # Set up logging
 logging.basicConfig(
@@ -23,6 +25,7 @@ from app.api.email_processing import router as email_processing_router
 from app.api.email_processing import process_emails_and_create_invoices
 from app.api.ml import router as ml_router
 from app.api.settings import router as settings_router
+from app.api.test_endpoints import router as test_endpoints_router
 
 # Import database
 from app.db.database import engine, Base, get_db
@@ -47,7 +50,9 @@ create_initial_organization()
 app = FastAPI(
     title="Invoice Reconciler API",
     description="API for invoice processing, OCR, and Xero reconciliation",
-    version="0.1.0"
+    version="0.1.0",
+    # Handle trailing slashes consistently - redirects /some-path/ to /some-path
+    redirect_slashes=True
 )
 
 # Setup CORS
@@ -70,9 +75,48 @@ async def root():
 # Health check
 @app.get("/health")
 async def health_check():
+    """
+    Comprehensive health check endpoint that reports on API status.
+    """
+    # List all registered routes
+    routes = []
+    for route in app.routes:
+        if hasattr(route, "methods") and hasattr(route, "path"):
+            routes.append({
+                "path": route.path,
+                "methods": list(route.methods),
+                "name": route.name
+            })
+    
+    # Check database connectivity
+    db_status = "unknown"
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT 1"))
+            if result.scalar() == 1:
+                db_status = "connected"
+            else:
+                db_status = "error"
+    except Exception as e:
+        db_status = f"error: {str(e)}"
+    
+    # Collect environment information
+    env_info = {
+        "FRONTEND_URL": os.environ.get("FRONTEND_URL", "not set"),
+        "DATABASE_URL": os.environ.get("DATABASE_URL", "not set").replace("://", "://***:***@"),
+        "XERO_CLIENT_ID": bool(os.environ.get("XERO_CLIENT_ID")),
+        "XERO_CLIENT_SECRET": bool(os.environ.get("XERO_CLIENT_SECRET")),
+        "XERO_REDIRECT_URI": os.environ.get("XERO_REDIRECT_URI"),
+    }
+    
     return {
         "status": "healthy",
-        "version": app.version
+        "version": app.version,
+        "timestamp": datetime.utcnow().isoformat(),
+        "database": db_status,
+        "registered_routes_count": len(routes),
+        "api_routes": [r for r in routes if r["path"].startswith("/api")],
+        "environment": env_info
     }
 
 # Include routers with logging
@@ -104,6 +148,9 @@ logger.info("Registered ml_router at /api/ml")
 
 app.include_router(settings_router, prefix="/api/settings", tags=["Settings"])
 logger.info("Registered settings_router at /api/settings")
+
+app.include_router(test_endpoints_router, prefix="/api/test-endpoints", tags=["Test Endpoints"], include_in_schema=False)
+logger.info("Registered test_endpoints_router at /api/test-endpoints")
 
 logger.info("All routers registered successfully")
 

@@ -14,9 +14,18 @@ import {
   List,
   ListItem,
   ListItemText,
-  Chip
+  Chip,
+  TextField,
+  Stepper,
+  Step,
+  StepLabel,
+  Link,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
-import { CheckCircle, Error as ErrorIcon, Lock, LockOpen } from '@mui/icons-material';
+import { CheckCircle, Error as ErrorIcon, Lock, LockOpen, OpenInNew } from '@mui/icons-material';
 import api from '../../services/api';
 
 const XeroIntegrationPage: React.FC = () => {
@@ -30,9 +39,27 @@ const XeroIntegrationPage: React.FC = () => {
     isConnected: false
   });
   const [authUrl, setAuthUrl] = useState<string | null>(null);
+  
+  // Developer setup mode
+  const [devMode, setDevMode] = useState(false);
+  const [showDevSetupDialog, setShowDevSetupDialog] = useState(false);
+  const [clientId, setClientId] = useState('');
+  const [clientSecret, setClientSecret] = useState('');
+  const [redirectUri, setRedirectUri] = useState('');
+  const [activeStep, setActiveStep] = useState(0);
+
+  const devSteps = [
+    'Get Xero Developer Account', 
+    'Create an Application', 
+    'Configure API Keys',
+    'Connect Application'
+  ];
 
   useEffect(() => {
     checkXeroStatus();
+    // Set default redirect URI based on current hostname
+    const baseUrl = window.location.origin;
+    setRedirectUri(`${baseUrl}/xero-callback`);
   }, []);
 
   const checkXeroStatus = async () => {
@@ -112,11 +139,208 @@ const XeroIntegrationPage: React.FC = () => {
     }
   };
 
+  const handleSaveApiKeys = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      await api.post('/api/settings', {
+        xeroClientId: clientId,
+        xeroClientSecret: clientSecret,
+        xeroRedirectUri: redirectUri
+      });
+      
+      // Move to next step
+      setActiveStep(3);
+      // Close the dialog
+      setShowDevSetupDialog(false);
+      // Generate auth URL for connection
+      await getAuthUrl();
+      
+    } catch (err) {
+      console.error('Failed to save API keys:', err);
+      setError('Failed to save API keys. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNextStep = () => {
+    setActiveStep((prevStep) => Math.min(prevStep + 1, devSteps.length - 1));
+  };
+
+  const handleBackStep = () => {
+    setActiveStep((prevStep) => Math.max(prevStep - 1, 0));
+  };
+
+  const renderDeveloperSetup = () => (
+    <Card variant="outlined" sx={{ mb: 4 }}>
+      <CardContent>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6">
+            Developer Setup
+          </Typography>
+          <Button 
+            variant="outlined" 
+            color="primary" 
+            onClick={() => setShowDevSetupDialog(true)}
+            startIcon={<OpenInNew />}
+          >
+            Configure API Keys
+          </Button>
+        </Box>
+        <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 3 }}>
+          {devSteps.map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
+        
+        {activeStep === 0 && (
+          <Box>
+            <Typography paragraph>
+              First, you need a Xero Developer account to create applications and get API keys.
+            </Typography>
+            <Button 
+              variant="contained" 
+              color="primary"
+              startIcon={<OpenInNew />}
+              onClick={() => window.open('https://developer.xero.com/app/manage/', '_blank')}
+              sx={{ mr: 2 }}
+            >
+              Xero Developer Portal
+            </Button>
+            <Button variant="outlined" onClick={handleNextStep}>
+              I have a Xero Developer Account
+            </Button>
+          </Box>
+        )}
+        
+        {activeStep === 1 && (
+          <Box>
+            <Typography paragraph>
+              Create a new application in the Xero Developer portal with the following settings:
+            </Typography>
+            <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+              <Typography variant="subtitle2">Required Application Settings:</Typography>
+              <List dense>
+                <ListItem>
+                  <ListItemText 
+                    primary="App Type" 
+                    secondary="Web App" 
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemText 
+                    primary="Redirect URI" 
+                    secondary={redirectUri} 
+                  />
+                </ListItem>
+                <ListItem>
+                  <ListItemText 
+                    primary="Required Scopes" 
+                    secondary="accounting.transactions, accounting.settings, offline_access" 
+                  />
+                </ListItem>
+              </List>
+            </Paper>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Button onClick={handleBackStep}>Back</Button>
+              <Button variant="outlined" onClick={handleNextStep}>
+                I've Created the Application
+              </Button>
+            </Box>
+          </Box>
+        )}
+        
+        {activeStep === 2 && (
+          <Box>
+            <Typography paragraph>
+              Get your Client ID and Client Secret from the application details page.
+            </Typography>
+            <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Client ID"
+                    value={clientId}
+                    onChange={(e) => setClientId(e.target.value)}
+                    placeholder="Enter your Xero Client ID"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Client Secret"
+                    value={clientSecret}
+                    onChange={(e) => setClientSecret(e.target.value)}
+                    placeholder="Enter your Xero Client Secret"
+                    type="password"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Redirect URI"
+                    value={redirectUri}
+                    onChange={(e) => setRedirectUri(e.target.value)}
+                    helperText="This should match exactly what you entered in Xero"
+                  />
+                </Grid>
+              </Grid>
+            </Paper>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Button onClick={handleBackStep}>Back</Button>
+              <Button 
+                variant="contained" 
+                color="primary" 
+                onClick={handleSaveApiKeys}
+                disabled={!clientId || !clientSecret || !redirectUri}
+              >
+                Save API Keys
+              </Button>
+            </Box>
+          </Box>
+        )}
+        
+        {activeStep === 3 && (
+          <Box>
+            <Typography paragraph>
+              Now you can connect your application to Xero. Click the button below to authorize.
+            </Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+              startIcon={<LockOpen />}
+              onClick={handleConnectXero}
+              disabled={loading}
+            >
+              Connect to Xero
+            </Button>
+          </Box>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   return (
     <Container maxWidth="lg" sx={{ my: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Xero Integration
-      </Typography>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Typography variant="h4" component="h1">
+          Xero Integration
+        </Typography>
+        <Button
+          variant="outlined"
+          color="primary"
+          size="small"
+          onClick={() => setDevMode(!devMode)}
+        >
+          {devMode ? 'Hide Developer Options' : 'Show Developer Options'}
+        </Button>
+      </Box>
       
       {loading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
@@ -129,6 +353,8 @@ const XeroIntegrationPage: React.FC = () => {
           {error}
         </Alert>
       )}
+      
+      {devMode && renderDeveloperSetup()}
       
       <Card variant="outlined" sx={{ mb: 4 }}>
         <CardContent>
@@ -245,6 +471,74 @@ const XeroIntegrationPage: React.FC = () => {
           </Grid>
         </Grid>
       )}
+      
+      {/* Developer Setup Dialog */}
+      <Dialog 
+        open={showDevSetupDialog} 
+        onClose={() => setShowDevSetupDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Configure Xero API Keys</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Client ID"
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+                placeholder="Enter your Xero Client ID"
+                variant="outlined"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Client Secret"
+                value={clientSecret}
+                onChange={(e) => setClientSecret(e.target.value)}
+                placeholder="Enter your Xero Client Secret"
+                type="password"
+                variant="outlined"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Redirect URI"
+                value={redirectUri}
+                onChange={(e) => setRedirectUri(e.target.value)}
+                helperText="Use this exact redirect URI in your Xero application settings"
+                variant="outlined"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="body2" color="textSecondary">
+                Learn more about setting up Xero API keys in the{" "}
+                <Link 
+                  href="https://developer.xero.com/documentation/getting-started-guide" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Xero Developer Documentation
+                </Link>
+              </Typography>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowDevSetupDialog(false)}>Cancel</Button>
+          <Button 
+            onClick={handleSaveApiKeys} 
+            variant="contained" 
+            color="primary"
+            disabled={!clientId || !clientSecret || !redirectUri}
+          >
+            Save API Keys
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

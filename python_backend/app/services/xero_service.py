@@ -37,6 +37,19 @@ class XeroService:
             logger.warning("Cannot generate authorization URL: client_id not configured")
             return f"https://example.com/mock-auth?client_id=not-configured&redirect_uri={self.redirect_uri}"
             
+        # Get organization-specific redirect URI if available
+        redirect_uri = self.redirect_uri
+        
+        # Connect to the database to get org-specific settings
+        with Session() as db:
+            org_settings = crud.organization_settings.get_by_organization(
+                db, organization_id=organization_id
+            )
+            
+            if org_settings and org_settings.xero_redirect_uri:
+                redirect_uri = org_settings.xero_redirect_uri
+                logger.info(f"Using organization-specific redirect URI: {redirect_uri}")
+        
         # Generate a state parameter that includes the organization ID
         state = f"org_{organization_id}"
         
@@ -45,7 +58,7 @@ class XeroService:
             f"{self.auth_url}?"
             f"response_type=code&"
             f"client_id={self.client_id}&"
-            f"redirect_uri={self.redirect_uri}&"
+            f"redirect_uri={redirect_uri}&"
             f"scope={self.scope}&"
             f"state={state}"
         )
@@ -58,11 +71,24 @@ class XeroService:
         Exchange the authorization code for access and refresh tokens.
         """
         try:
+            # Get organization-specific redirect URI if available
+            redirect_uri = self.redirect_uri
+            
+            # Connect to the database to get org-specific settings
+            with Session() as db:
+                org_settings = crud.organization_settings.get_by_organization(
+                    db, organization_id=organization_id
+                )
+                
+                if org_settings and org_settings.xero_redirect_uri:
+                    redirect_uri = org_settings.xero_redirect_uri
+                    logger.info(f"Using organization-specific redirect URI for token exchange: {redirect_uri}")
+            
             # Request payload for token exchange
             payload = {
                 "grant_type": "authorization_code",
                 "code": code,
-                "redirect_uri": self.redirect_uri,
+                "redirect_uri": redirect_uri,
             }
             
             # Basic auth with client ID and secret

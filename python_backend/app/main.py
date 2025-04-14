@@ -22,6 +22,7 @@ from app.api.xero import router as xero_router
 from app.api.email_processing import router as email_processing_router
 from app.api.email_processing import process_emails_and_create_invoices
 from app.api.ml import router as ml_router
+from app.api.settings import router as settings_router
 
 # Import database
 from app.db.database import engine, Base, get_db
@@ -93,6 +94,9 @@ logger.info("Registered email_processing_router at /api/email-processing")
 
 app.include_router(ml_router, prefix="/api/ml", tags=["Machine Learning"])
 logger.info("Registered ml_router at /api/ml")
+
+app.include_router(settings_router, prefix="/api/settings", tags=["Settings"])
+logger.info("Registered settings_router at /api/settings")
 
 logger.info("All routers registered successfully")
 

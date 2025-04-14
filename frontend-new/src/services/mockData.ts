@@ -351,4 +351,107 @@ export const mockDashboardStats = {
       timestamp: "2023-05-05T11:20:00Z"
     }
   ]
-}; 
+};
+
+// Mock data for Xero integration
+export const mockXeroIntegration = {
+  status: {
+    connected: false,
+    tokenExpiry: null,
+    tenantName: null
+  },
+  authUrl: {
+    auth_url: 'https://login.xero.com/identity/connect/authorize?response_type=code&client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&scope=offline_access+accounting.transactions+accounting.settings&state=org_1',
+    message: 'Please visit this URL to authorize access to your Xero account.'
+  }
+};
+
+// Mock data for Xero invoices
+export const mockXeroInvoices = [
+  {
+    InvoiceID: 'xero-inv-1',
+    InvoiceNumber: 'INV-001',
+    Type: 'ACCREC',
+    Contact: {
+      ContactID: 'contact-1',
+      Name: 'Acme Corporation'
+    },
+    Date: '2023-04-15',
+    DueDate: '2023-05-15',
+    Status: 'AUTHORISED',
+    LineAmountTypes: 'Exclusive',
+    SubTotal: 1000.00,
+    TotalTax: 200.00,
+    Total: 1200.00,
+    CurrencyCode: 'GBP',
+    AmountDue: 1200.00,
+    AmountPaid: 0.00,
+    UpdatedDateUTC: '2023-04-15T12:00:00Z'
+  },
+  {
+    InvoiceID: 'xero-inv-2',
+    InvoiceNumber: 'INV-002',
+    Type: 'ACCREC',
+    Contact: {
+      ContactID: 'contact-2',
+      Name: 'Tech Solutions Ltd'
+    },
+    Date: '2023-04-20',
+    DueDate: '2023-05-20',
+    Status: 'AUTHORISED',
+    LineAmountTypes: 'Exclusive',
+    SubTotal: 2500.00,
+    TotalTax: 500.00,
+    Total: 3000.00,
+    CurrencyCode: 'GBP',
+    AmountDue: 3000.00,
+    AmountPaid: 0.00,
+    UpdatedDateUTC: '2023-04-20T14:30:00Z'
+  }
+];
+
+// Mock data for Xero bank transactions
+export const mockXeroBankTransactions = [
+  {
+    BankTransactionID: 'bank-tx-1',
+    Type: 'SPEND',
+    Contact: {
+      ContactID: 'contact-1',
+      Name: 'Acme Corporation'
+    },
+    Date: '2023-04-16',
+    Status: 'AUTHORISED',
+    LineAmountTypes: 'Exclusive',
+    SubTotal: 1000.00,
+    TotalTax: 200.00,
+    Total: 1200.00,
+    BankAccount: {
+      AccountID: 'account-1',
+      Code: '090',
+      Name: 'Business Account'
+    },
+    IsReconciled: false,
+    UpdatedDateUTC: '2023-04-16T15:00:00Z'
+  },
+  {
+    BankTransactionID: 'bank-tx-2',
+    Type: 'SPEND',
+    Contact: {
+      ContactID: 'contact-2',
+      Name: 'Tech Solutions Ltd'
+    },
+    Date: '2023-04-22',
+    Status: 'AUTHORISED',
+    LineAmountTypes: 'Exclusive',
+    SubTotal: 2500.00,
+    TotalTax: 500.00,
+    Total: 3000.00,
+    BankAccount: {
+      AccountID: 'account-1',
+      Code: '090',
+      Name: 'Business Account'
+    },
+    IsReconciled: false,
+    UpdatedDateUTC: '2023-04-22T09:15:00Z'
+  }
+]; 

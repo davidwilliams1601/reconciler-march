@@ -39,6 +39,7 @@ import ProfileSettingsPage from './ProfileSettingsPage';
 import OrganizationSettingsPage from './OrganizationSettingsPage';
 import CostCentersPage from './CostCentersPage';
 import EmailProcessingSettingsPage from './EmailProcessingSettingsPage';
+import XeroIntegrationPage from './XeroIntegrationPage';
 
 interface APIConfig {
   // Xero API Configuration
@@ -110,6 +111,7 @@ const SettingsPage: React.FC = () => {
     { text: 'Organization', icon: <Business />, path: '/settings/organization' },
     { text: 'Email Processing', icon: <Email />, path: '/settings/email-processing' },
     { text: 'Cost Centers', icon: <AccountBalance />, path: '/settings/cost-centers' },
+    { text: 'Xero Integration', icon: <AccountCircle />, path: '/settings/xero' },
     { text: 'API Settings', icon: <SettingsIcon />, path: '/settings/api' },
   ];
 
@@ -956,31 +958,40 @@ const SettingsPage: React.FC = () => {
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Grid container spacing={3}>
         <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 2 }}>
-            <List>
+          <Paper sx={{ mb: 3 }}>
+            <List component="nav">
+              <ListItem>
+                <Typography variant="h6">Settings</Typography>
+              </ListItem>
+              <Divider />
               {menuItems.map((item) => (
-                <ListItem key={item.text} disablePadding>
-                  <ListItemButton
-                    component={RouterLink}
-                    to={item.path}
-                    selected={location.pathname === item.path}
-                  >
-                    <ListItemIcon>{item.icon}</ListItemIcon>
-                    <ListItemText primary={item.text} />
-                  </ListItemButton>
-                </ListItem>
+                <ListItemButton
+                  key={item.text}
+                  selected={location.pathname === item.path}
+                  component={RouterLink}
+                  to={item.path}
+                >
+                  <ListItemIcon>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText primary={item.text} />
+                </ListItemButton>
               ))}
             </List>
           </Paper>
         </Grid>
         <Grid item xs={12} md={9}>
-          <Routes>
-            <Route path="profile" element={<ProfileSettingsPage />} />
-            <Route path="organization" element={<OrganizationSettingsPage />} />
-            <Route path="email-processing" element={<EmailProcessingSettingsPage />} />
-            <Route path="cost-centers" element={<CostCentersPage />} />
-            <Route path="api" element={renderContent()} />
-          </Routes>
+          <Paper sx={{ p: 3 }}>
+            <Routes>
+              <Route path="/profile" element={<ProfileSettingsPage />} />
+              <Route path="/organization" element={<OrganizationSettingsPage />} />
+              <Route path="/email-processing" element={<EmailProcessingSettingsPage />} />
+              <Route path="/cost-centers" element={<CostCentersPage />} />
+              <Route path="/xero" element={<XeroIntegrationPage />} />
+              <Route path="/api" element={renderContent()} />
+              <Route path="*" element={<ProfileSettingsPage />} />
+            </Routes>
+          </Paper>
         </Grid>
       </Grid>
     </Container>

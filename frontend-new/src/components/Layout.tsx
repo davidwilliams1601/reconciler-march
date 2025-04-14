@@ -1,7 +1,7 @@
 import React from 'react';
-import { Box, AppBar, Toolbar, Typography, IconButton, Drawer, List, ListItem, ListItemIcon, ListItemText, useTheme } from '@mui/material';
-import { Menu as MenuIcon, Dashboard, Settings, CloudUpload, Receipt } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { Box, AppBar, Toolbar, Typography, IconButton, Drawer, List, ListItem, ListItemIcon, ListItemText, useTheme, Divider } from '@mui/material';
+import { Menu as MenuIcon, Dashboard, Settings, CloudUpload, Receipt, AccountBalance, Link as LinkIcon } from '@mui/icons-material';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const drawerWidth = 240;
 
@@ -12,6 +12,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
   const handleDrawerToggle = () => {
@@ -22,6 +23,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { text: 'Dashboard', icon: <Dashboard />, path: '/' },
     { text: 'Invoices', icon: <Receipt />, path: '/invoices' },
     { text: 'Upload Invoice', icon: <CloudUpload />, path: '/upload' },
+    { text: 'Reconciliation', icon: <LinkIcon />, path: '/reconciliation' },
     { text: 'Settings', icon: <Settings />, path: '/settings' },
   ];
 
@@ -32,12 +34,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           Invoice Reconciler
         </Typography>
       </Toolbar>
+      <Divider />
       <List>
         {menuItems.map((item) => (
           <ListItem 
             key={item.text} 
             onClick={() => navigate(item.path)}
-            sx={{ cursor: 'pointer' }}
+            sx={{ 
+              cursor: 'pointer',
+              backgroundColor: location.pathname === item.path ? theme.palette.action.selected : 'transparent',
+              '&:hover': {
+                backgroundColor: theme.palette.action.hover,
+              }
+            }}
           >
             <ListItemIcon>{item.icon}</ListItemIcon>
             <ListItemText primary={item.text} />

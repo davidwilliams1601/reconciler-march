@@ -7,6 +7,7 @@ import DashboardPage from './features/dashboard/DashboardPage';
 import SettingsPage from './features/settings/SettingsPage';
 import UploadPage from './features/invoices/UploadPage';
 import InvoicesPage from './features/invoices/InvoicesPage';
+import ReconciliationPage from './features/reconciliation/ReconciliationPage';
 
 const App: React.FC = () => {
   return (
@@ -19,6 +20,7 @@ const App: React.FC = () => {
             <Route path="/invoices" element={<InvoicesPage />} />
             <Route path="/settings/*" element={<SettingsPage />} />
             <Route path="/upload" element={<UploadPage />} />
+            <Route path="/reconciliation" element={<ReconciliationPage />} />
           </Routes>
         </Layout>
       </Router>

@@ -1,5 +1,11 @@
 import axios from 'axios';
-import { mockInvoices, mockDashboardStats } from './mockData';
+import { 
+  mockInvoices, 
+  mockDashboardStats, 
+  mockXeroIntegration, 
+  mockXeroInvoices, 
+  mockXeroBankTransactions 
+} from './mockData';
 import { mockSettings, mockOrganization, mockEmailProcessing, mockCostCenters } from './mockSettings';
 
 // Debug environment variables
@@ -139,6 +145,27 @@ api.interceptors.response.use(
         if (url && url.includes('/api/cost-centers')) {
           console.info('Using mock cost centers data due to network error');
           return Promise.resolve({ data: mockCostCenters });
+        }
+        
+        // Handle Xero API endpoints
+        if (url && url.includes('/api/xero/status')) {
+          console.info('Using mock Xero status data due to network error');
+          return Promise.resolve({ data: mockXeroIntegration.status });
+        }
+        
+        if (url && url.includes('/api/xero/auth-url')) {
+          console.info('Using mock Xero auth URL data due to network error');
+          return Promise.resolve({ data: mockXeroIntegration.authUrl });
+        }
+        
+        if (url && url.includes('/api/xero/invoices')) {
+          console.info('Using mock Xero invoices data due to network error');
+          return Promise.resolve({ data: mockXeroInvoices });
+        }
+        
+        if (url && url.includes('/api/xero/bank-transactions')) {
+          console.info('Using mock Xero bank transactions data due to network error');
+          return Promise.resolve({ data: mockXeroBankTransactions });
         }
       }
     } else {

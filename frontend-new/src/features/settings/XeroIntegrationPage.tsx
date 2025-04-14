@@ -125,10 +125,20 @@ const XeroIntegrationPage: React.FC = () => {
         setSyncStatus('error');
         setSyncMessage('Sync failed');
       }
-    } catch (error) {
-      console.error('Sync failed:', error);
+    } catch (err) {
+      console.error('Sync failed:', err);
       setSyncStatus('error');
-      setSyncMessage(error instanceof Error ? error.message : 'Failed to sync with Xero');
+      
+      // Type-safe way to handle different error types
+      let errorMessage = 'Failed to sync with Xero';
+      
+      // @ts-ignore
+      if (err && typeof err === 'object' && 'message' in err) {
+        // @ts-ignore
+        errorMessage = err.message;
+      }
+      
+      setSyncMessage(errorMessage);
     }
   };
 

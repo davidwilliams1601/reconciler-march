@@ -52,7 +52,9 @@ class OrganizationSettings(Base):
     xero_client_id = Column(String, nullable=True)
     xero_client_secret = Column(String, nullable=True)
     xero_tenant_id = Column(String, nullable=True)
+    xero_tenant_name = Column(String, nullable=True)
     xero_refresh_token = Column(String, nullable=True)
+    xero_access_token = Column(String, nullable=True)
     xero_token_expiry = Column(DateTime, nullable=True)
     
     # Google Vision settings

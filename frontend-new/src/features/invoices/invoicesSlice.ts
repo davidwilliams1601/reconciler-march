@@ -212,7 +212,7 @@ function mapBackendToFrontendInvoice(backendInvoice: BackendInvoice): Invoice {
       status: backendInvoice.reconciled ? 'matched' : 'pending',
       matchedAt: backendInvoice.reconciled_at,
     },
-    reconciled: backendInvoice.reconciled,
+    reconciled: Boolean(backendInvoice.reconciled),
     createdAt: backendInvoice.created_at,
     updatedAt: backendInvoice.updated_at
   };

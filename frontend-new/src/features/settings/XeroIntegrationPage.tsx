@@ -79,6 +79,51 @@ const XeroIntegrationPage: React.FC = () => {
     // Log all URL parameters for debugging
     console.log('All URL parameters:', Object.fromEntries(params.entries()));
     
+    // Handle errors from Xero callback
+    if (params.has('error')) {
+      const errorType = params.get('error');
+      const errorMessage = params.get('message');
+      console.error(`Xero error: ${errorType}`, errorMessage);
+      
+      // Set error state
+      let displayMessage = 'An error occurred while connecting to Xero.';
+      
+      switch (errorType) {
+        case 'no_code':
+          displayMessage = 'No authorization code was received from Xero.';
+          break;
+        case 'no_settings':
+          displayMessage = 'Application settings are missing. Please contact support.';
+          break;
+        case 'token_exchange_failed':
+          displayMessage = 'Failed to exchange authorization code for tokens.';
+          break;
+        case 'tenant_fetch_failed':
+          displayMessage = 'Failed to retrieve your Xero organization information.';
+          break;
+        case 'no_tenants':
+          displayMessage = 'No Xero organizations connected. Please ensure your Xero account has at least one organization.';
+          break;
+        case 'server_error':
+          displayMessage = `Server error: ${errorMessage || 'Unknown error'}`;
+          break;
+        default:
+          displayMessage = `Connection error: ${errorMessage || errorType || 'Unknown error'}`;
+      }
+      
+      dispatch({ 
+        type: 'xero/fetchStatus/rejected', 
+        payload: displayMessage
+      });
+      
+      // Clean up error parameters
+      if (window.history && window.history.replaceState) {
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+        console.log('Cleaned URL parameters after handling error');
+      }
+    }
+    
     if (params.has('demo') && params.get('demo') === 'true') {
       console.log('Demo mode activated from URL parameter');
       setIsDemoMode(true);

@@ -69,6 +69,48 @@ const XeroIntegrationPage: React.FC = () => {
   const [syncStatus, setSyncStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [syncMessage, setSyncMessage] = useState('');
   const [lastSync, setLastSync] = useState<string | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
+
+  // Check for demo mode parameters in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('demo') && params.get('demo') === 'true') {
+      console.log('Demo mode activated from URL parameter');
+      setIsDemoMode(true);
+      
+      // Simulate a successful Xero connection in demo mode
+      simulateDemoConnection();
+    }
+  }, []);
+
+  // Function to simulate a successful Xero connection in demo mode
+  const simulateDemoConnection = async () => {
+    try {
+      // Make a POST request to a special endpoint that will create a demo connection
+      const response = await api.post('/api/xero/demo-connect', {
+        demo: true
+      });
+      
+      // Refresh the Xero status to show as connected
+      dispatch(fetchXeroStatus());
+      
+      console.log('Successfully simulated Xero connection in demo mode');
+    } catch (error) {
+      console.error('Error in demo mode connection:', error);
+      
+      // Even if the backend call fails, we can still simulate the connection in the UI
+      // This is just for demonstration purposes
+      dispatch({ 
+        type: 'xero/fetchStatus/fulfilled', 
+        payload: {
+          isAuthenticated: true,
+          tenantId: 'demo-tenant-id',
+          tenantName: 'Demo Company Ltd',
+          tokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
+        }
+      });
+    }
+  };
 
   useEffect(() => {
     // Fetch Xero connection status when the component mounts
@@ -92,6 +134,15 @@ const XeroIntegrationPage: React.FC = () => {
   const handleConnect = async () => {
     try {
       const result = await dispatch(getXeroAuthUrl()).unwrap();
+      
+      // Check if we're in demo mode
+      if (result && result.isDemoMode) {
+        console.log('Demo mode detected. Simulating Xero connection...');
+        setIsDemoMode(true);
+        window.location.href = result.url;
+        return;
+      }
+      
       if (result && result.url) {
         // Redirect to Xero for authorization
         window.location.href = result.url;

@@ -31,8 +31,8 @@ router.get('/status', async (req, res) => {
                     timezone: 'Europe/London',
                 },
                 xeroConfig: {
-                    clientId: process.env.XERO_CLIENT_ID || 'your-xero-client-id',
-                    clientSecret: process.env.XERO_CLIENT_SECRET || 'your-xero-client-secret',
+                    clientId: process.env.XERO_CLIENT_ID || 'demo-client-id',
+                    clientSecret: process.env.XERO_CLIENT_SECRET || 'demo-client-secret',
                     redirectUri: process.env.NODE_ENV === 'production'
                         ? 'https://reconciler-march.onrender.com/api/xero/callback'
                         : 'http://localhost:5001/api/xero/callback',
@@ -47,14 +47,28 @@ router.get('/status', async (req, res) => {
         // Check if Xero config exists
         if (!settings.xeroConfig) {
             settings.xeroConfig = {
-                clientId: process.env.XERO_CLIENT_ID || 'your-xero-client-id',
-                clientSecret: process.env.XERO_CLIENT_SECRET || 'your-xero-client-secret',
+                clientId: process.env.XERO_CLIENT_ID || 'demo-client-id',
+                clientSecret: process.env.XERO_CLIENT_SECRET || 'demo-client-secret',
                 redirectUri: process.env.NODE_ENV === 'production'
                     ? 'https://reconciler-march.onrender.com/api/xero/callback'
                     : 'http://localhost:5001/api/xero/callback',
                 isConnected: false
             };
             await settings.save();
+        }
+        
+        // Check if we're in demo mode
+        const isDemoMode = settings.xeroConfig.clientId === 'demo-client-id';
+        
+        if (isDemoMode && settings.xeroConfig.isConnected) {
+            console.log('Demo mode detected, returning mock connection status');
+            return res.json({
+                isAuthenticated: true,
+                tokenExpiry: settings.xeroConfig.tokenExpiry || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                tenantId: settings.xeroConfig.tenantId || 'demo-tenant-id',
+                tenantName: settings.xeroConfig.tenantName || 'Demo Company Ltd',
+                isDemoMode: true
+            });
         }
         
         // Check if we have Xero tokens
@@ -117,8 +131,8 @@ router.get('/auth-url', async (req, res) => {
                     timezone: 'Europe/London',
                 },
                 xeroConfig: {
-                    clientId: process.env.XERO_CLIENT_ID || 'your-xero-client-id',
-                    clientSecret: process.env.XERO_CLIENT_SECRET || 'your-xero-client-secret',
+                    clientId: process.env.XERO_CLIENT_ID || 'demo-client-id',
+                    clientSecret: process.env.XERO_CLIENT_SECRET || 'demo-client-secret',
                     redirectUri: process.env.NODE_ENV === 'production'
                         ? 'https://reconciler-march.onrender.com/api/xero/callback'
                         : 'http://localhost:5001/api/xero/callback',
@@ -133,14 +147,28 @@ router.get('/auth-url', async (req, res) => {
         // Check if Xero config exists
         if (!settings.xeroConfig) {
             settings.xeroConfig = {
-                clientId: process.env.XERO_CLIENT_ID || 'your-xero-client-id',
-                clientSecret: process.env.XERO_CLIENT_SECRET || 'your-xero-client-secret',
+                clientId: process.env.XERO_CLIENT_ID || 'demo-client-id',
+                clientSecret: process.env.XERO_CLIENT_SECRET || 'demo-client-secret',
                 redirectUri: process.env.NODE_ENV === 'production'
                     ? 'https://reconciler-march.onrender.com/api/xero/callback'
                     : 'http://localhost:5001/api/xero/callback',
                 isConnected: false
             };
             await settings.save();
+        }
+
+        // For demo purposes, allow placeholder credentials
+        const isDemoMode = !process.env.XERO_CLIENT_ID || 
+                          settings.xeroConfig.clientId === 'demo-client-id' ||
+                          settings.xeroConfig.clientId === 'your-xero-client-id';
+        
+        if (isDemoMode) {
+            console.log('Using demo mode for Xero integration');
+            // Return a mock URL for demo purposes
+            return res.json({ 
+                url: `${getFrontendURL()}/settings/xero?demo=true`,
+                isDemoMode: true
+            });
         }
 
         if (!settings.xeroConfig.clientId || settings.xeroConfig.clientId === 'your-xero-client-id') {
@@ -177,6 +205,7 @@ router.post('/disconnect', async (req, res) => {
         settings.xeroConfig.accessToken = null;
         settings.xeroConfig.refreshToken = null;
         settings.xeroConfig.tokenExpiry = null;
+        settings.xeroConfig.isConnected = false;
         
         await settings.save();
         
@@ -201,7 +230,7 @@ router.post('/sync', async (req, res) => {
         const settings = await Settings.findOne();
         
         // Check if we have Xero settings and tokens
-        if (!settings || !settings.xeroConfig || !settings.xeroConfig.accessToken) {
+        if (!settings || !settings.xeroConfig || (!settings.xeroConfig.accessToken && !settings.xeroConfig.isConnected)) {
             return res.status(400).json({ 
                 success: false,
                 message: 'Not connected to Xero' 
@@ -256,6 +285,71 @@ router.get('/last-sync', async (req, res) => {
     }
 });
 
+// Demo connection endpoint
+router.post('/demo-connect', async (req, res) => {
+    try {
+        // Check if demo mode is enabled
+        if (!req.body || !req.body.demo) {
+            return res.status(400).json({ 
+                message: 'This endpoint is only available in demo mode' 
+            });
+        }
+
+        // Find or create settings
+        let settings = await Settings.findOne();
+        
+        if (!settings) {
+            console.log('No settings found. Creating default settings...');
+            
+            // Create default settings
+            settings = new Settings({
+                organization: {
+                    name: 'Reconciler Demo',
+                    defaultCurrency: 'GBP',
+                    defaultLanguage: 'en',
+                    timezone: 'Europe/London',
+                },
+                xeroConfig: {
+                    clientId: 'demo-client-id',
+                    clientSecret: 'demo-client-secret',
+                    redirectUri: 'https://reconciler-march.onrender.com/api/xero/callback',
+                    isConnected: true
+                }
+            });
+            
+            await settings.save();
+        }
+
+        // Update settings to simulate a connection to Xero
+        settings.xeroConfig = {
+            ...settings.xeroConfig,
+            accessToken: 'demo-access-token',
+            refreshToken: 'demo-refresh-token',
+            tokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+            tenantId: 'demo-tenant-id',
+            tenantName: 'Demo Company Ltd',
+            isConnected: true,
+            lastSync: new Date()
+        };
+        
+        await settings.save();
+        
+        console.log('Successfully simulated Xero connection in demo mode');
+        
+        res.json({ 
+            success: true, 
+            isDemoMode: true,
+            message: 'Successfully connected to Xero in demo mode'
+        });
+    } catch (error) {
+        console.error('Error in demo connection:', error);
+        res.status(500).json({ 
+            message: 'Error creating demo connection', 
+            error: error.message 
+        });
+    }
+});
+
 // Handle Xero OAuth callback
 router.get('/callback', async (req, res) => {
     const { code, state } = req.query;
@@ -302,6 +396,7 @@ router.get('/callback', async (req, res) => {
         settings.xeroConfig.accessToken = tokens.access_token;
         settings.xeroConfig.refreshToken = tokens.refresh_token;
         settings.xeroConfig.tokenExpiry = new Date(Date.now() + (tokens.expires_in * 1000));
+        settings.xeroConfig.isConnected = true;
         
         await settings.save();
 

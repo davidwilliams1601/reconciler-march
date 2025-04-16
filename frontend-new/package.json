@@ -36,10 +36,13 @@
   "scripts": {
     "preinstall": "node -v",
     "start": "react-scripts start",
-    "build": "CI=false GENERATE_SOURCEMAP=false REACT_APP_API_URL=$REACT_APP_API_URL react-scripts build",
+    "prebuild": "node update-version.js",
+    "build": "CI=false GENERATE_SOURCEMAP=false REACT_APP_API_URL=$REACT_APP_API_URL REACT_APP_BUILD_TIME=$(date +%s) react-scripts build",
+    "clean": "rm -rf node_modules/.cache build",
+    "build:clean": "npm run clean && npm run build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "deploy": "node -v && npm install && npm run build"
+    "deploy": "node -v && npm install && npm run build:clean"
   },
   "eslintConfig": {
     "extends": [

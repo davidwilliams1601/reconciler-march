@@ -40,9 +40,32 @@ export const getXeroAuthUrl = createAsyncThunk(
   'xero/getAuthUrl',
   async (_, { rejectWithValue }) => {
     try {
+      console.log('Making API request to /api/xero/auth-url');
       const response = await api.get('/api/xero/auth-url');
-      return response.data;
+      console.log('Received response from auth-url endpoint:', response.data);
+      
+      // Check for demo mode flag
+      if (response.data && response.data.isDemoMode) {
+        console.log('Detected demo mode in response');
+        return {
+          url: response.data.url,
+          isDemoMode: true
+        };
+      }
+      
+      // Handle normal case
+      if (response.data && response.data.url) {
+        return response.data;
+      } else {
+        console.error('Invalid response format from auth-url endpoint:', response.data);
+        return rejectWithValue('Invalid response format from Xero auth endpoint');
+      }
     } catch (error: any) {
+      console.error('Error in getXeroAuthUrl:', error);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+      }
       return rejectWithValue(error.response?.data?.message || 'Failed to get Xero auth URL');
     }
   }

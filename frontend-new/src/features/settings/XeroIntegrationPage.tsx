@@ -132,8 +132,11 @@ const XeroIntegrationPage: React.FC = () => {
   }, [dispatch]);
 
   const handleConnect = async () => {
+    console.log('Connect to Xero button clicked');
     try {
+      console.log('Dispatching getXeroAuthUrl action');
       const result = await dispatch(getXeroAuthUrl()).unwrap();
+      console.log('Auth URL result:', result);
       
       // Check if we're in demo mode
       if (result && result.isDemoMode) {
@@ -144,8 +147,11 @@ const XeroIntegrationPage: React.FC = () => {
       }
       
       if (result && result.url) {
+        console.log('Redirecting to Xero auth URL:', result.url);
         // Redirect to Xero for authorization
         window.location.href = result.url;
+      } else {
+        console.error('No URL returned from getXeroAuthUrl');
       }
     } catch (error) {
       console.error('Failed to get Xero auth URL:', error);
@@ -258,15 +264,33 @@ const XeroIntegrationPage: React.FC = () => {
                     Disconnect from Xero
                   </Button>
                 ) : (
-                  <Button 
-                    variant="contained" 
-                    color="primary" 
-                    onClick={handleConnect}
-                    startIcon={<AccountBalance />}
-                    disabled={status === 'loading'}
-                  >
-                    Connect to Xero
-                  </Button>
+                  <>
+                    <Button 
+                      variant="contained" 
+                      color="primary" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        console.log('Button clicked directly');
+                        handleConnect();
+                      }}
+                      startIcon={<AccountBalance />}
+                      disabled={status === 'loading'}
+                      sx={{ mr: 2 }}
+                    >
+                      Connect to Xero
+                    </Button>
+                    <Button 
+                      variant="outlined" 
+                      color="secondary" 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        console.log('Direct demo button clicked');
+                        simulateDemoConnection();
+                      }}
+                    >
+                      Demo Connection
+                    </Button>
+                  </>
                 )}
               </Box>
             </Box>

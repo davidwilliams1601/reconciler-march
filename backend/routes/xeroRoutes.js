@@ -287,9 +287,12 @@ router.get('/last-sync', async (req, res) => {
 // Demo connection endpoint
 router.post('/demo-connect', async (req, res) => {
     try {
-        // Check if demo mode is enabled
+        console.log('Demo connect endpoint called with body:', req.body);
+        
+        // Check if demo mode is enabled in the request
         if (!req.body || !req.body.demo) {
             return res.status(400).json({ 
+                success: false,
                 message: 'This endpoint is only available in demo mode' 
             });
         }
@@ -298,9 +301,9 @@ router.post('/demo-connect', async (req, res) => {
         let settings = await Settings.findOne();
         
         if (!settings) {
-            console.log('No settings found. Creating default settings...');
+            console.log('No settings found. Creating default settings for demo mode...');
             
-            // Create default settings
+            // Create default settings with demo mode enabled
             settings = new Settings({
                 organization: {
                     name: 'Reconciler Demo',
@@ -311,12 +314,22 @@ router.post('/demo-connect', async (req, res) => {
                 xeroConfig: {
                     clientId: 'demo-client-id',
                     clientSecret: 'demo-client-secret',
-                    redirectUri: 'https://reconciler-march.onrender.com/api/xero/callback',
-                    isConnected: true
+                    redirectUri: process.env.NODE_ENV === 'production'
+                        ? 'https://reconciler-march.onrender.com/api/xero/callback'
+                        : 'http://localhost:5001/api/xero/callback',
+                    isConnected: true,
+                    isDemoMode: true
                 }
             });
+        } else {
+            // Update existing settings for demo mode
+            if (!settings.xeroConfig) {
+                settings.xeroConfig = {};
+            }
             
-            await settings.save();
+            // Ensure demo mode is enabled
+            settings.xeroConfig.isDemoMode = true;
+            settings.xeroConfig.isConnected = true;
         }
 
         // Update settings to simulate a connection to Xero
@@ -328,22 +341,42 @@ router.post('/demo-connect', async (req, res) => {
             tenantId: 'demo-tenant-id',
             tenantName: 'Demo Company Ltd',
             isConnected: true,
-            lastSync: new Date()
+            lastSync: new Date(),
+            isDemoMode: true
         };
         
         await settings.save();
         
         console.log('Successfully simulated Xero connection in demo mode');
         
+        // Return a response matching what the frontend expects
         res.json({ 
             success: true, 
             isDemoMode: true,
+            isAuthenticated: true,
+            tenantId: 'demo-tenant-id',
+            tenantName: 'Demo Company Ltd',
+            tokenExpiry: settings.xeroConfig.tokenExpiry.toISOString(),
             message: 'Successfully connected to Xero in demo mode'
         });
     } catch (error) {
         console.error('Error in demo connection:', error);
-        res.status(500).json({ 
-            message: 'Error creating demo connection', 
+        
+        // More detailed error handling
+        let errorMessage = 'Error creating demo connection';
+        let statusCode = 500;
+        
+        if (error.name === 'ValidationError') {
+            errorMessage = 'Invalid data format';
+            statusCode = 400;
+        } else if (error.name === 'MongoError' && error.code === 11000) {
+            errorMessage = 'Duplicate entry error';
+            statusCode = 400;
+        }
+        
+        res.status(statusCode).json({ 
+            success: false,
+            message: errorMessage, 
             error: error.message 
         });
     }

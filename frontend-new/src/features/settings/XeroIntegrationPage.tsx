@@ -85,18 +85,37 @@ const XeroIntegrationPage: React.FC = () => {
       
       // Simulate a successful Xero connection in demo mode
       simulateDemoConnection();
+      
+      // Clean up URL parameters after processing them
+      // This prevents issues with refreshing the page and duplicate processing
+      if (window.history && window.history.replaceState) {
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+        console.log('Cleaned URL parameters after processing demo mode');
+      }
     }
     
     // Also check for success parameter which might come from a redirect
     if (params.has('success') && params.get('success') === 'true') {
       console.log('Success parameter detected in URL, refreshing status');
       dispatch(fetchXeroStatus());
+      
+      // Clean up success parameter
+      if (window.history && window.history.replaceState) {
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+        console.log('Cleaned URL parameters after processing success');
+      }
     }
   }, []);
 
   // Function to simulate a successful Xero connection in demo mode
   const simulateDemoConnection = async () => {
     console.log('Starting demo connection simulation');
+    
+    // Initialize UI state immediately for better UX
+    setSyncStatus('loading');
+    setSyncMessage('Establishing demo connection...');
     
     try {
       // First try with the API endpoint
@@ -107,39 +126,54 @@ const XeroIntegrationPage: React.FC = () => {
       
       console.log('API response from demo-connect:', response.data);
       
-      // Refresh the Xero status to show as connected
-      dispatch(fetchXeroStatus());
-      
-      console.log('Successfully simulated Xero connection in demo mode via API');
+      if (response.data && response.data.success) {
+        // Update local state for immediate UI feedback
+        setSyncStatus('success');
+        setSyncMessage('Demo connection established successfully');
+        setLastSync(new Date().toISOString());
+        
+        // Refresh the Xero status to show as connected
+        dispatch(fetchXeroStatus());
+        
+        console.log('Successfully simulated Xero connection in demo mode via API');
+      } else {
+        console.error('API responded but without success flag');
+        // Instead of throwing, just handle it like other errors
+        fallbackToClientSideSimulation();
+      }
     } catch (error) {
       console.error('Error in demo mode connection via API:', error);
-      
-      console.log('Falling back to client-side simulation');
-      // Even if the backend call fails, we can still simulate the connection in the UI
-      // This is just for demonstration purposes
-      
-      // Simulate a successful response without the API
-      const mockPayload = {
-        isAuthenticated: true,
-        tenantId: 'demo-tenant-id',
-        tenantName: 'Demo Company Ltd',
-        tokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
-      };
-      
-      // Set the mock data in the Redux store
-      console.log('Dispatching mock data to Redux:', mockPayload);
-      dispatch({ 
-        type: 'xero/fetchStatus/fulfilled', 
-        payload: mockPayload
-      });
-      
-      // Also update local state to force re-render
-      console.log('Updating local state for demo mode');
-      setIsDemoMode(true);
-      setLastSync(new Date().toISOString());
-      setSyncStatus('success');
-      setSyncMessage('Demo connection established successfully');
+      fallbackToClientSideSimulation();
     }
+  };
+
+  // Extracted method to handle fallback simulation
+  const fallbackToClientSideSimulation = () => {
+    console.log('Falling back to client-side simulation');
+    // Even if the backend call fails, we can still simulate the connection in the UI
+    // This is just for demonstration purposes
+    
+    // Simulate a successful response without the API
+    const mockPayload = {
+      isAuthenticated: true,
+      tenantId: 'demo-tenant-id',
+      tenantName: 'Demo Company Ltd',
+      tokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
+    };
+    
+    // Set the mock data in the Redux store
+    console.log('Dispatching mock data to Redux:', mockPayload);
+    dispatch({ 
+      type: 'xero/fetchStatus/fulfilled', 
+      payload: mockPayload
+    });
+    
+    // Also update local state to force re-render
+    console.log('Updating local state for demo mode');
+    setIsDemoMode(true);
+    setLastSync(new Date().toISOString());
+    setSyncStatus('success');
+    setSyncMessage('Demo connection established successfully');
   };
 
   useEffect(() => {

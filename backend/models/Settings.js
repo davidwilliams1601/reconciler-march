@@ -36,6 +36,27 @@ const settingsSchema = new mongoose.Schema({
             }
         }
     },
+    // Xero Configuration
+    xeroConfig: {
+        clientId: String,
+        clientSecret: String,
+        tenantId: String,
+        tenantName: String,
+        redirectUri: {
+            type: String,
+            default: process.env.NODE_ENV === 'production'
+                ? 'https://reconciler-march.onrender.com/api/xero/callback'
+                : 'http://localhost:5001/api/xero/callback'
+        },
+        accessToken: String,
+        refreshToken: String,
+        tokenExpiry: Date,
+        lastSync: Date,
+        isConnected: {
+            type: Boolean,
+            default: false
+        }
+    },
     // Email Processing Settings
     emailProcessing: {
         enabled: {

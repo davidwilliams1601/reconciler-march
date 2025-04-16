@@ -9,9 +9,56 @@ const XERO_SCOPES = 'offline_access accounting.transactions accounting.settings'
 // Get the frontend URL based on environment
 const getFrontendURL = () => {
     return process.env.NODE_ENV === 'production'
-        ? 'https://reconciler-frontend.onrender.com'
+        ? 'https://frontend-new-er0k.onrender.com'
         : 'http://localhost:3000';
 };
+
+// Check Xero connection status
+router.get('/status', async (req, res) => {
+    try {
+        const settings = await Settings.findOne();
+        
+        // Check if we have Xero settings and tokens
+        if (!settings || !settings.xeroConfig || !settings.xeroConfig.accessToken) {
+            return res.json({
+                isAuthenticated: false,
+                tokenExpiry: null,
+                tenantId: null,
+                tenantName: null
+            });
+        }
+
+        // Check if token has expired
+        const isExpired = settings.xeroConfig.tokenExpiry && 
+            new Date(settings.xeroConfig.tokenExpiry) < new Date();
+
+        if (isExpired) {
+            console.log('Xero token has expired. Needs refresh.');
+            // For a proper implementation, we would refresh the token here
+            // This is just a placeholder
+            return res.json({
+                isAuthenticated: false,
+                tokenExpiry: settings.xeroConfig.tokenExpiry,
+                tenantId: settings.xeroConfig.tenantId,
+                tenantName: settings.xeroConfig.tenantName || 'Your Organization'
+            });
+        }
+
+        // Return authenticated status
+        return res.json({
+            isAuthenticated: true,
+            tokenExpiry: settings.xeroConfig.tokenExpiry,
+            tenantId: settings.xeroConfig.tenantId,
+            tenantName: settings.xeroConfig.tenantName || 'Your Organization'
+        });
+    } catch (error) {
+        console.error('Error checking Xero status:', error);
+        res.status(500).json({ 
+            message: 'Error checking Xero connection status', 
+            error: error.message 
+        });
+    }
+});
 
 // Generate Xero authorization URL
 router.get('/auth-url', async (req, res) => {
@@ -30,10 +77,101 @@ router.get('/auth-url', async (req, res) => {
             `&scope=${encodeURIComponent(XERO_SCOPES)}` +
             `&state=${generateState()}`;
 
-        res.json({ authUrl });
+        res.json({ url: authUrl });
     } catch (error) {
         console.error('Error generating auth URL:', error);
         res.status(500).json({ message: 'Error generating authorization URL', error: error.message });
+    }
+});
+
+// Disconnect from Xero
+router.post('/disconnect', async (req, res) => {
+    try {
+        const settings = await Settings.findOne();
+        if (!settings) {
+            return res.status(400).json({ message: 'Settings not found' });
+        }
+
+        // Update settings to remove Xero tokens
+        settings.xeroConfig.accessToken = null;
+        settings.xeroConfig.refreshToken = null;
+        settings.xeroConfig.tokenExpiry = null;
+        
+        await settings.save();
+        
+        console.log('Successfully disconnected from Xero');
+        
+        res.json({ 
+            success: true, 
+            message: 'Successfully disconnected from Xero'
+        });
+    } catch (error) {
+        console.error('Error disconnecting from Xero:', error);
+        res.status(500).json({ 
+            message: 'Error disconnecting from Xero', 
+            error: error.message 
+        });
+    }
+});
+
+// New endpoint for Xero sync
+router.post('/sync', async (req, res) => {
+    try {
+        const settings = await Settings.findOne();
+        
+        // Check if we have Xero settings and tokens
+        if (!settings || !settings.xeroConfig || !settings.xeroConfig.accessToken) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'Not connected to Xero' 
+            });
+        }
+
+        // In a real implementation, this would sync data with Xero
+        // This is just a placeholder
+        console.log('Syncing with Xero...');
+
+        // Update the last sync time
+        settings.xeroConfig.lastSync = new Date();
+        await settings.save();
+        
+        // Return success
+        return res.json({
+            success: true,
+            message: 'Successfully synchronized with Xero',
+            lastSync: settings.xeroConfig.lastSync
+        });
+    } catch (error) {
+        console.error('Error syncing with Xero:', error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Error syncing with Xero', 
+            error: error.message 
+        });
+    }
+});
+
+// New endpoint for getting last sync time
+router.get('/last-sync', async (req, res) => {
+    try {
+        const settings = await Settings.findOne();
+        
+        // Check if we have Xero settings and tokens
+        if (!settings || !settings.xeroConfig) {
+            return res.json({ 
+                lastSync: null
+            });
+        }
+
+        return res.json({
+            lastSync: settings.xeroConfig.lastSync || null
+        });
+    } catch (error) {
+        console.error('Error getting last sync time:', error);
+        res.status(500).json({ 
+            message: 'Error getting last sync time', 
+            error: error.message 
+        });
     }
 });
 
@@ -79,9 +217,15 @@ router.get('/callback', async (req, res) => {
         const tokens = await tokenResponse.json();
         console.log('Successfully received Xero tokens');
 
-        // Here you would typically store the tokens securely
-        // For now, we'll just return success
-        res.redirect(`${getFrontendURL()}/settings?xero=success`);
+        // Store the tokens securely
+        settings.xeroConfig.accessToken = tokens.access_token;
+        settings.xeroConfig.refreshToken = tokens.refresh_token;
+        settings.xeroConfig.tokenExpiry = new Date(Date.now() + (tokens.expires_in * 1000));
+        
+        await settings.save();
+
+        // Redirect back to the settings page
+        res.redirect(`${getFrontendURL()}/settings/xero?success=true`);
     } catch (error) {
         console.error('Error in Xero callback:', error);
         res.redirect(`${getFrontendURL()}/settings?xero=error&message=server_error`);

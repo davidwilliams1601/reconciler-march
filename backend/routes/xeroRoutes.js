@@ -16,10 +16,49 @@ const getFrontendURL = () => {
 // Check Xero connection status
 router.get('/status', async (req, res) => {
     try {
-        const settings = await Settings.findOne();
+        // Find settings or create if they don't exist
+        let settings = await Settings.findOne();
         
-        // Check if we have Xero settings and tokens
-        if (!settings || !settings.xeroConfig || !settings.xeroConfig.accessToken) {
+        if (!settings) {
+            console.log('No settings found. Creating default settings...');
+            
+            // Create default settings
+            settings = new Settings({
+                organization: {
+                    name: 'Reconciler Demo',
+                    defaultCurrency: 'GBP',
+                    defaultLanguage: 'en',
+                    timezone: 'Europe/London',
+                },
+                xeroConfig: {
+                    clientId: process.env.XERO_CLIENT_ID || 'your-xero-client-id',
+                    clientSecret: process.env.XERO_CLIENT_SECRET || 'your-xero-client-secret',
+                    redirectUri: process.env.NODE_ENV === 'production'
+                        ? 'https://reconciler-march.onrender.com/api/xero/callback'
+                        : 'http://localhost:5001/api/xero/callback',
+                    isConnected: false
+                }
+            });
+            
+            await settings.save();
+            console.log('Default settings created successfully');
+        }
+        
+        // Check if Xero config exists
+        if (!settings.xeroConfig) {
+            settings.xeroConfig = {
+                clientId: process.env.XERO_CLIENT_ID || 'your-xero-client-id',
+                clientSecret: process.env.XERO_CLIENT_SECRET || 'your-xero-client-secret',
+                redirectUri: process.env.NODE_ENV === 'production'
+                    ? 'https://reconciler-march.onrender.com/api/xero/callback'
+                    : 'http://localhost:5001/api/xero/callback',
+                isConnected: false
+            };
+            await settings.save();
+        }
+        
+        // Check if we have Xero tokens
+        if (!settings.xeroConfig.accessToken) {
             return res.json({
                 isAuthenticated: false,
                 tokenExpiry: null,
@@ -63,9 +102,51 @@ router.get('/status', async (req, res) => {
 // Generate Xero authorization URL
 router.get('/auth-url', async (req, res) => {
     try {
-        const settings = await Settings.findOne();
-        if (!settings || !settings.xeroConfig.clientId) {
-            return res.status(400).json({ message: 'Xero configuration not found' });
+        // Find settings or create if they don't exist
+        let settings = await Settings.findOne();
+        
+        if (!settings) {
+            console.log('No settings found. Creating default settings...');
+            
+            // Create default settings
+            settings = new Settings({
+                organization: {
+                    name: 'Reconciler Demo',
+                    defaultCurrency: 'GBP',
+                    defaultLanguage: 'en',
+                    timezone: 'Europe/London',
+                },
+                xeroConfig: {
+                    clientId: process.env.XERO_CLIENT_ID || 'your-xero-client-id',
+                    clientSecret: process.env.XERO_CLIENT_SECRET || 'your-xero-client-secret',
+                    redirectUri: process.env.NODE_ENV === 'production'
+                        ? 'https://reconciler-march.onrender.com/api/xero/callback'
+                        : 'http://localhost:5001/api/xero/callback',
+                    isConnected: false
+                }
+            });
+            
+            await settings.save();
+            console.log('Default settings created successfully');
+        }
+
+        // Check if Xero config exists
+        if (!settings.xeroConfig) {
+            settings.xeroConfig = {
+                clientId: process.env.XERO_CLIENT_ID || 'your-xero-client-id',
+                clientSecret: process.env.XERO_CLIENT_SECRET || 'your-xero-client-secret',
+                redirectUri: process.env.NODE_ENV === 'production'
+                    ? 'https://reconciler-march.onrender.com/api/xero/callback'
+                    : 'http://localhost:5001/api/xero/callback',
+                isConnected: false
+            };
+            await settings.save();
+        }
+
+        if (!settings.xeroConfig.clientId || settings.xeroConfig.clientId === 'your-xero-client-id') {
+            return res.status(400).json({ 
+                message: 'Xero configuration not found. Please set your Xero API credentials in the environment variables or settings page.'
+            });
         }
 
         console.log('Generating Xero auth URL with redirect URI:', settings.xeroConfig.redirectUri);

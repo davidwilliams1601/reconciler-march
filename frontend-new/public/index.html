@@ -27,6 +27,8 @@
     ">
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <title>Invoice Reconciler</title>
+    <!-- Version tracking script with timestamp to force cache invalidation -->
+    <script src="%PUBLIC_URL%/version.js?v=<%= Date.now() %>"></script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

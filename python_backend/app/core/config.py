@@ -33,6 +33,11 @@ class Settings:
     
     # Google Vision settings
     GOOGLE_VISION_API_KEY: Optional[str] = os.getenv("GOOGLE_VISION_API_KEY")
+    
+    # Xero integration settings
+    XERO_CLIENT_ID: Optional[str] = os.getenv("XERO_CLIENT_ID")
+    XERO_CLIENT_SECRET: Optional[str] = os.getenv("XERO_CLIENT_SECRET")
+    XERO_REDIRECT_URI: str = os.getenv("XERO_REDIRECT_URI", f"{FRONTEND_URL}/xero-callback")
 
 # Instantiate settings
 settings = Settings() 

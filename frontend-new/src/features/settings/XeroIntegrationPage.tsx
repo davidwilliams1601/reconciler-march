@@ -18,16 +18,19 @@ import {
   AlertTitle,
   Link
 } from '@mui/material';
-import { 
-  CheckCircle, 
-  Error, 
-  Sync, 
-  AccountBalance, 
-  Receipt, 
-  CloudDownload,
-  VerifiedUser,
-  Schedule
-} from '@mui/icons-material';
+
+// Import custom icon components instead of Material-UI icons
+import {
+  CheckCircleIcon as CheckCircle,
+  ErrorIcon as Error,
+  SyncIcon as Sync,
+  AccountBalanceIcon as AccountBalance,
+  ReceiptIcon as Receipt,
+  CloudDownloadIcon as CloudDownload,
+  VerifiedUserIcon as VerifiedUser,
+  ScheduleIcon as Schedule
+} from '../../components/IconProvider';
+
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { fetchXeroStatus, getXeroAuthUrl, disconnectXero } from '../xero/xeroSlice';
 import api from '../../services/api';

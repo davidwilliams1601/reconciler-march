@@ -18,7 +18,7 @@
     <!-- Content Security Policy -->
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self' chrome-extension:;
-      script-src 'self' 'unsafe-inline' 'unsafe-eval' chrome-extension:;
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' chrome-extension: https://fonts.googleapis.com;
       style-src 'self' 'unsafe-inline' data: chrome-extension: https://fonts.googleapis.com;
       img-src 'self' data: blob: chrome-extension:;
       font-src 'self' data: blob: https: https://fonts.gstatic.com chrome-extension: *;
@@ -29,6 +29,8 @@
     <title>Invoice Reconciler</title>
     <!-- Version tracking script with timestamp to force cache invalidation -->
     <script src="%PUBLIC_URL%/version.js?v=<%= Date.now() %>"></script>
+    <!-- Custom icon loader that handles null values gracefully -->
+    <script src="%PUBLIC_URL%/iconLoader.js?v=<%= Date.now() %>"></script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

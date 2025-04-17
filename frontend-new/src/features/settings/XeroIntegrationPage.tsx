@@ -15,7 +15,8 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  AlertTitle
+  AlertTitle,
+  Link
 } from '@mui/material';
 import { 
   CheckCircle, 
@@ -340,6 +341,58 @@ const XeroIntegrationPage: React.FC = () => {
     );
   };
 
+  const renderSetupGuide = () => {
+    if (isAuthenticated) {
+      return null;
+    }
+
+    return (
+      <Box sx={{ mt: 3, mb: 4 }}>
+        <Typography variant="h6" gutterBottom>
+          Setup Guide
+        </Typography>
+        <Alert severity="info" sx={{ mb: 2 }}>
+          <AlertTitle>Before connecting to Xero:</AlertTitle>
+          <Typography variant="body2">
+            You need to set up a Xero Developer app and configure your environment correctly.
+          </Typography>
+        </Alert>
+        
+        <Paper sx={{ p: 2 }}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Option 1: Use our setup utility (recommended)
+          </Typography>
+          <Typography variant="body2" paragraph>
+            The setup utility guides you through the process of setting up Xero integration:
+          </Typography>
+          <ol>
+            <li>Go to your project directory in the terminal</li>
+            <li>Run <code>cd scripts</code></li>
+            <li>Run <code>node install-xero-setup.js</code> to install dependencies</li>
+            <li>Run <code>node setup-xero.js</code> to start the setup process</li>
+            <li>Follow the prompts and complete the authorization</li>
+            <li>Restart your application</li>
+          </ol>
+        </Paper>
+        
+        <Paper sx={{ p: 2, mt: 2 }}>
+          <Typography variant="subtitle1" fontWeight="bold">
+            Option 2: Manual setup
+          </Typography>
+          <Typography variant="body2" paragraph>
+            If you prefer to set up manually:
+          </Typography>
+          <ol>
+            <li>Create a Xero Developer app at <a href="https://developer.xero.com/app/manage" target="_blank" rel="noopener noreferrer">Xero Developer Portal</a></li>
+            <li>Configure the redirect URI to <code>https://reconciler-march.onrender.com/api/xero/callback</code> (or <code>http://localhost:5001/api/xero/callback</code> for local development)</li>
+            <li>Create a <code>.env</code> file with your Xero credentials (XERO_CLIENT_ID, XERO_CLIENT_SECRET, XERO_REDIRECT_URI)</li>
+            <li>Restart your application</li>
+          </ol>
+        </Paper>
+      </Box>
+    );
+  };
+
   return (
     <Container maxWidth="lg" sx={{ my: 4 }}>
       <Typography variant="h4" component="h1" gutterBottom>
@@ -403,6 +456,9 @@ const XeroIntegrationPage: React.FC = () => {
                 )}
               </Box>
             </Box>
+            
+            {/* Render setup guide when not authenticated */}
+            {!isAuthenticated && renderSetupGuide()}
           </Paper>
         </Grid>
         

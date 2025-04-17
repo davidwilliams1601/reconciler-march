@@ -67,6 +67,32 @@ This utility helps you easily connect your application to the Xero API without h
 
 ## Troubleshooting
 
+### "Error Code: 500 - unauthorized_client : Unknown client or client not enabled"
+
+This common error occurs when attempting to connect to Xero and indicates problems with your Xero app credentials:
+
+1. **Verify your Client ID and Client Secret**:
+   - Double-check that you've copied the Client ID and Client Secret correctly from the Xero Developer Portal
+   - Ensure there are no extra spaces or characters
+   - Make sure you're using the credentials from the correct app
+
+2. **Check your app status in Xero Developer Portal**:
+   - Log in to https://developer.xero.com/app/manage
+   - Verify your app is in "Active" state, not "Created" or "Draft"
+   - Ensure the app has been approved and is not pending review
+
+3. **Verify the Redirect URI**:
+   - Ensure the exact same Redirect URI is configured both in your app settings and in the Xero Developer Portal
+   - The URI is case-sensitive and must match exactly
+
+4. **Recreate your Xero app**:
+   - Sometimes, creating a new app resolves permissions issues
+   - Follow the setup instructions again with a new app
+
+5. **Use Demo Mode temporarily**:
+   - If you continue to have issues, use the "Demo Connection" button to test functionality
+   - This simulates a successful connection for development purposes
+
 ### Font Loading & CSP Issues
 
 If you experience font loading or Content Security Policy (CSP) issues, the application includes a diagnostic page:

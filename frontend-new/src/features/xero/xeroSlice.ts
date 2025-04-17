@@ -53,6 +53,15 @@ export const getXeroAuthUrl = createAsyncThunk(
         };
       }
       
+      // Check for setup needed flag
+      if (response.data && response.data.setupNeeded) {
+        console.log('Xero setup needed:', response.data.message);
+        return rejectWithValue({
+          message: response.data.message || 'Xero setup needed',
+          setupNeeded: true
+        });
+      }
+      
       // Handle normal case
       if (response.data && response.data.url) {
         return response.data;
@@ -62,6 +71,23 @@ export const getXeroAuthUrl = createAsyncThunk(
       }
     } catch (error: any) {
       console.error('Error in getXeroAuthUrl:', error);
+      
+      // Check if this is a setup needed error
+      if (error.response?.data?.setupNeeded) {
+        return rejectWithValue({
+          message: error.response.data.message || 'Xero setup needed',
+          setupNeeded: true
+        });
+      }
+      
+      // Check for unauthorized_client error (common with Xero)
+      if (error.response?.data?.error === 'unauthorized_client') {
+        return rejectWithValue({
+          message: 'Your Xero app is not properly configured or the Client ID is invalid',
+          setupNeeded: true
+        });
+      }
+      
       if (error.response) {
         console.error('Response data:', error.response.data);
         console.error('Response status:', error.response.status);

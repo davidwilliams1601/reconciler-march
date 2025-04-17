@@ -16,7 +16,8 @@ import {
   ListItemIcon,
   ListItemText,
   AlertTitle,
-  Link
+  Link,
+  TextField
 } from '@mui/material';
 
 // Import custom icon components instead of Material-UI icons
@@ -248,6 +249,9 @@ const XeroIntegrationPage: React.FC = () => {
     console.log('Connect to Xero button clicked');
     try {
       console.log('Dispatching getXeroAuthUrl action');
+      setSyncStatus('loading');
+      setSyncMessage('Preparing to connect with Xero...');
+      
       const result = await dispatch(getXeroAuthUrl()).unwrap();
       console.log('Auth URL result:', result);
       
@@ -265,9 +269,19 @@ const XeroIntegrationPage: React.FC = () => {
         window.location.href = result.url;
       } else {
         console.error('No URL returned from getXeroAuthUrl');
+        setSyncStatus('error');
+        setSyncMessage('Failed to get Xero authorization URL');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to get Xero auth URL:', error);
+      setSyncStatus('error');
+      
+      // Check if this is a setup issue
+      if (error.setupNeeded) {
+        setSyncMessage(`Setup required: ${error.message || 'Please set up your Xero app credentials'}`);
+      } else {
+        setSyncMessage(error.message || 'Failed to connect to Xero');
+      }
     }
   };
 
@@ -393,6 +407,133 @@ const XeroIntegrationPage: React.FC = () => {
           </ol>
         </Paper>
       </Box>
+    );
+  };
+
+  // Xero Developer Credentials Form component
+  const XeroDeveloperCredentialsForm = () => {
+    const [clientId, setClientId] = useState('');
+    const [clientSecret, setClientSecret] = useState('');
+    const [redirectUri, setRedirectUri] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveResult, setSaveResult] = useState<{ success: boolean, message: string } | null>(null);
+    
+    const handleSave = async () => {
+      setIsSaving(true);
+      setSaveResult(null);
+      
+      try {
+        const response = await api.post('/api/settings/update-xero-credentials', {
+          clientId,
+          clientSecret,
+          redirectUri
+        });
+        
+        console.log('Saved Xero credentials response:', response.data);
+        setSaveResult({
+          success: true,
+          message: 'Xero credentials saved successfully!'
+        });
+        
+        // Clear form after successful save
+        setClientId('');
+        setClientSecret('');
+      } catch (error: any) {
+        console.error('Error saving Xero credentials:', error);
+        setSaveResult({
+          success: false,
+          message: error.response?.data?.message || 'Failed to save Xero credentials'
+        });
+      } finally {
+        setIsSaving(false);
+      }
+    };
+    
+    const handleGenerateRedirectUri = () => {
+      // Generate a default redirect URI based on the current hostname
+      const isLocalhost = window.location.hostname === 'localhost';
+      const baseUrl = isLocalhost 
+        ? 'http://localhost:5001' 
+        : 'https://reconciler-march.onrender.com';
+      
+      setRedirectUri(`${baseUrl}/api/xero/callback`);
+    };
+    
+    return (
+      <Paper sx={{ p: 3, mb: 3, mt: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Xero Developer Credentials
+        </Typography>
+        
+        <Typography variant="body2" color="text.secondary" paragraph>
+          Enter your Xero app credentials to connect with the Xero API. You can create a Xero app at <Link href="https://developer.xero.com/app/manage" target="_blank" rel="noopener">Xero Developer Portal</Link>.
+        </Typography>
+        
+        <Box component="form" noValidate autoComplete="off" sx={{ mt: 2 }}>
+          <TextField
+            label="Client ID"
+            variant="outlined"
+            fullWidth
+            margin="normal"
+            value={clientId}
+            onChange={(e) => setClientId(e.target.value)}
+            placeholder="Your Xero app client ID"
+            helperText="From your Xero app settings"
+          />
+          
+          <TextField
+            label="Client Secret"
+            variant="outlined"
+            fullWidth
+            margin="normal"
+            type="password"
+            value={clientSecret}
+            onChange={(e) => setClientSecret(e.target.value)}
+            placeholder="Your Xero app client secret"
+            helperText="From your Xero app settings"
+          />
+          
+          <TextField
+            label="Redirect URI"
+            variant="outlined"
+            fullWidth
+            margin="normal"
+            value={redirectUri}
+            onChange={(e) => setRedirectUri(e.target.value)}
+            placeholder="https://your-app-url.com/api/xero/callback"
+            helperText="Must match exactly with the URI in your Xero app settings"
+            InputProps={{
+              endAdornment: (
+                <Button 
+                  variant="text" 
+                  size="small" 
+                  onClick={handleGenerateRedirectUri}
+                  sx={{ minWidth: 'auto' }}
+                >
+                  Generate
+                </Button>
+              )
+            }}
+          />
+          
+          {saveResult && (
+            <Alert severity={saveResult.success ? 'success' : 'error'} sx={{ mt: 2 }}>
+              {saveResult.message}
+            </Alert>
+          )}
+          
+          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSave}
+              disabled={isSaving || !clientId || !clientSecret || !redirectUri}
+            >
+              {isSaving ? <CircularProgress size={24} /> : 'Save Credentials'}
+            </Button>
+          </Box>
+        </Box>
+      </Paper>
     );
   };
 
@@ -555,6 +696,8 @@ const XeroIntegrationPage: React.FC = () => {
           </>
         )}
       </Grid>
+      
+      {!isAuthenticated && <XeroDeveloperCredentialsForm />}
     </Container>
   );
 };

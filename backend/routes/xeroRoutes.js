@@ -121,6 +121,9 @@ router.get('/auth-url', async (req, res) => {
         // Get settings from database
         let settings = await Settings.findOne();
         
+        // Check for demo mode request in query parameters
+        const forceDemoMode = req.query.demo === 'true';
+        
         // Create default settings if not found
         if (!settings) {
             console.log('Xero settings not found, creating defaults');
@@ -159,18 +162,26 @@ router.get('/auth-url', async (req, res) => {
             console.log('Updated Xero settings with environment variables');
         }
         
+        // Log client ID only for debugging (don't log secret)
+        console.log('Xero client ID:', settings.xeroConfig.clientId ? 
+            settings.xeroConfig.clientId.substring(0, 5) + '...' : '(missing)');
+        
         console.log('Xero settings:', {
-            clientId: settings.xeroConfig.clientId ? '(present)' : '(missing)',
+            clientId: settings.xeroConfig.clientId ? 
+                settings.xeroConfig.clientId.substring(0, 5) + '...' : '(missing)',
             clientSecret: settings.xeroConfig.clientSecret ? '(present)' : '(missing)',
             redirectUri: settings.xeroConfig.redirectUri,
             isDemoMode: settings.xeroConfig.isDemoMode
         });
         
         // Check if demo mode is requested or if credentials are missing
-        const isDemoMode = settings.xeroConfig.isDemoMode === true || 
+        const isDemoMode = forceDemoMode || 
+                         settings.xeroConfig.isDemoMode === true || 
                          !settings.xeroConfig.clientId || 
                          !settings.xeroConfig.clientSecret || 
-                         !settings.xeroConfig.redirectUri;
+                         !settings.xeroConfig.redirectUri ||
+                         settings.xeroConfig.clientId === 'YOUR_XERO_CLIENT_ID' ||
+                         settings.xeroConfig.clientSecret === 'YOUR_XERO_CLIENT_SECRET';
         
         // Generate a demo URL if in demo mode or credentials are missing
         if (isDemoMode) {
@@ -189,6 +200,32 @@ router.get('/auth-url', async (req, res) => {
         // If we get here, we have actual credentials, so create a real auth URL
         console.log('Generating real Xero authorization URL');
         console.log('Generating Xero auth URL with redirect URI:', settings.xeroConfig.redirectUri);
+
+        // Verify that client ID and client secret are actually present
+        if (!settings.xeroConfig.clientId || settings.xeroConfig.clientId.trim() === '') {
+            return res.status(400).json({
+                error: 'Missing Xero Client ID',
+                message: 'Please set up your Xero app and provide a valid Client ID',
+                setupNeeded: true
+            });
+        }
+
+        if (!settings.xeroConfig.clientSecret || settings.xeroConfig.clientSecret.trim() === '') {
+            return res.status(400).json({
+                error: 'Missing Xero Client Secret',
+                message: 'Please set up your Xero app and provide a valid Client Secret',
+                setupNeeded: true
+            });
+        }
+
+        // Check redirect URI is valid
+        if (!settings.xeroConfig.redirectUri || !settings.xeroConfig.redirectUri.includes('/api/xero/callback')) {
+            return res.status(400).json({
+                error: 'Invalid Redirect URI',
+                message: 'The redirect URI must end with /api/xero/callback',
+                setupNeeded: true
+            });
+        }
 
         const authUrl = `https://login.xero.com/identity/connect/authorize?` +
             `response_type=code` +

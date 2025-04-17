@@ -613,4 +613,108 @@ router.post('/test-dext', async (req, res) => {
     }
 });
 
+// Update Xero credentials endpoint
+router.post('/update-xero-credentials', async (req, res) => {
+    try {
+        const { clientId, clientSecret, redirectUri } = req.body;
+        
+        if (!clientId || !clientSecret || !redirectUri) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Missing required Xero credentials' 
+            });
+        }
+        
+        if (!redirectUri.includes('/api/xero/callback')) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Invalid redirect URI. Must end with /api/xero/callback' 
+            });
+        }
+        
+        // Find existing settings or create new
+        let settings = await Settings.findOne();
+        
+        if (!settings) {
+            settings = new Settings({
+                organization: {
+                    name: 'Reconciler Demo',
+                    defaultCurrency: 'GBP',
+                    defaultLanguage: 'en',
+                    timezone: 'Europe/London',
+                },
+                xeroConfig: {}
+            });
+        }
+        
+        // Update Xero settings
+        settings.xeroConfig = {
+            ...settings.xeroConfig,
+            clientId,
+            clientSecret,
+            redirectUri,
+            isDemoMode: false
+        };
+        
+        await settings.save();
+        console.log('Updated Xero credentials successfully');
+        
+        // Also update environment variables if possible (for backup)
+        try {
+            const dotenv = require('dotenv');
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Generate environment variable content
+            const envVars = {
+                XERO_CLIENT_ID: clientId,
+                XERO_CLIENT_SECRET: clientSecret,
+                XERO_REDIRECT_URI: redirectUri
+            };
+            
+            // Find .env file path
+            const envPath = path.resolve(process.cwd(), '.env');
+            
+            // Read existing .env if it exists
+            let envContent = '';
+            if (fs.existsSync(envPath)) {
+                envContent = fs.readFileSync(envPath, 'utf8');
+            }
+            
+            // Update each variable
+            Object.keys(envVars).forEach(key => {
+                const value = envVars[key];
+                const regex = new RegExp(`^${key}=.*`, 'm');
+                
+                if (envContent.match(regex)) {
+                    // Update existing variable
+                    envContent = envContent.replace(regex, `${key}=${value}`);
+                } else {
+                    // Add new variable
+                    envContent += `\n${key}=${value}`;
+                }
+            });
+            
+            // Write back to file
+            fs.writeFileSync(envPath, envContent.trim());
+            console.log('Updated .env file with Xero credentials');
+        } catch (envError) {
+            console.warn('Could not update .env file:', envError.message);
+            // Continue anyway as we've already updated the database
+        }
+        
+        res.status(200).json({ 
+            success: true, 
+            message: 'Xero credentials updated successfully'
+        });
+    } catch (error) {
+        console.error('Error updating Xero credentials:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Server error updating Xero credentials', 
+            error: error.message
+        });
+    }
+});
+
 module.exports = router; 

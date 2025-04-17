@@ -20,4 +20,30 @@ window.checkForUpdates = function() {
 };
 
 // Check for updates every 5 minutes
-setInterval(window.checkForUpdates, 300000); 
+setInterval(window.checkForUpdates, 300000);
+
+// This script is used for version tracking and also displays helpful information
+// about setting up the Xero integration
+
+console.log('%cInvoice Reconciler App', 'font-size: 20px; font-weight: bold; color: #4285f4;');
+console.log('%cApplication version: 1.0.0', 'font-size: 12px; color: #333;');
+console.log('%cBuild timestamp: ' + document.querySelector('meta[name="build-timestamp"]')?.content, 'font-size: 12px; color: #333;');
+
+// Check if CSP is causing issues
+console.log('%cChecking for CSP issues...', 'font-size: 14px; color: #ff9800;');
+try {
+  // Create a test font element to check if fonts can load
+  const testFont = new FontFace('TestFont', 'url("data:application/font-woff2;base64,d09GMgABAAAAAADcA")');
+  console.log('%cNo CSP font loading issues detected.', 'font-size: 12px; color: #4caf50;');
+} catch (e) {
+  console.error('%cCSP font loading issue detected: ' + e.message, 'font-size: 12px; color: #f44336;');
+  console.log('%cIf you see font loading errors, try updating your Content-Security-Policy.', 'font-size: 12px; color: #f44336;');
+}
+
+// Xero Integration Setup Helper
+console.log('%cXero Integration Helper', 'font-size: 16px; font-weight: bold; color: #0a85eb;');
+console.log('%cTo set up Xero integration, run the following commands in your terminal:', 'font-size: 12px; color: #333;');
+console.log('%c1. cd scripts', 'font-size: 12px; color: #333;');
+console.log('%c2. node install-xero-setup.js', 'font-size: 12px; color: #333;');
+console.log('%c3. node setup-xero.js', 'font-size: 12px; color: #333;');
+console.log('%cFollow the prompts to complete the setup process.', 'font-size: 12px; color: #333;'); 

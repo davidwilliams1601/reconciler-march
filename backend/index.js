@@ -102,7 +102,7 @@ app.use((req, res, next) => {
         "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
         "style-src 'self' 'unsafe-inline' data:; " +
         "img-src 'self' data: blob:; " +
-        "font-src 'self' data: blob: https:; " +
+        "font-src 'self' data: blob: https: https://fonts.gstatic.com https://fonts.googleapis.com; " +
         "connect-src 'self' http://localhost:5001 https://frontend-new-er0k.onrender.com https://*.onrender.com https://*.netlify.app;";
     
     console.log('\nCSP Header:');

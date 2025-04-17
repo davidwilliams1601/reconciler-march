@@ -1,704 +1,268 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Container, 
-  Typography, 
-  Paper, 
-  Box, 
-  Alert, 
-  Button, 
-  Card, 
-  CardContent, 
-  Grid, 
-  Divider, 
-  CircularProgress,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  AlertTitle,
-  Link,
-  TextField
-} from '@mui/material';
-
-// Import custom icon components instead of Material-UI icons
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import {
-  CheckCircleIcon as CheckCircle,
-  ErrorIcon as Error,
-  SyncIcon as Sync,
-  AccountBalanceIcon as AccountBalance,
-  ReceiptIcon as Receipt,
-  CloudDownloadIcon as CloudDownload,
-  VerifiedUserIcon as VerifiedUser,
-  ScheduleIcon as Schedule
-} from '../../components/IconProvider';
-
-import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { fetchXeroStatus, getXeroAuthUrl, disconnectXero } from '../xero/xeroSlice';
-import api from '../../services/api';
-import { RootState } from '../../app/store';
-
-// Define types for API responses
-interface XeroSyncResponse {
-  success: boolean;
-  message?: string;
-}
-
-interface XeroLastSyncResponse {
-  lastSync: string;
-}
-
-// Type guard for state access
-interface XeroStateType {
-  status: 'idle' | 'loading' | 'succeeded' | 'failed';
-  isAuthenticated: boolean;
-  authUrl: string | null;
-  tenantId: string | null;
-  tenantName: string | null;
-  tokenExpiry: string | null;
-  error: string | null;
-}
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CircularProgress,
+  Typography,
+  Alert,
+  AlertTitle,
+  Grid,
+  Paper,
+} from '@mui/material';
+import {
+  connectToXero,
+  fetchXeroStatus,
+  selectXero,
+  disconnectXero,
+} from '../xero/xeroSlice';
+import { AppDispatch } from '../../app/store';
+import { useLocation } from 'react-router-dom';
+import CustomIcon from '../../components/CustomIcon';
 
 const XeroIntegrationPage: React.FC = () => {
-  const dispatch = useAppDispatch();
-  // Use a safe type assertion with default fallback values
-  const xeroState = useAppSelector((state: any) => state.xero as XeroStateType || {
-    status: 'idle',
-    isAuthenticated: false,
-    authUrl: null,
-    error: null,
-    tenantName: null,
-    tokenExpiry: null
-  });
-  
-  const { status, authUrl, error, isAuthenticated, tenantName, tokenExpiry } = xeroState;
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [syncMessage, setSyncMessage] = useState('');
-  const [lastSync, setLastSync] = useState<string | null>(null);
-  const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
+  const dispatch = useDispatch<AppDispatch>();
+  const xeroState = useSelector(selectXero);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const location = useLocation();
 
-  // Check for demo mode parameters in URL
   useEffect(() => {
-    console.log('Checking URL parameters for demo mode');
-    const params = new URLSearchParams(window.location.search);
+    dispatch(fetchXeroStatus());
+  }, [dispatch]);
+
+  useEffect(() => {
+    // Check URL parameters when component mounts
+    const params = new URLSearchParams(location.search);
+    console.log('Checking URL parameters:', Object.fromEntries(params.entries()));
     
-    // Log all URL parameters for debugging
-    console.log('All URL parameters:', Object.fromEntries(params.entries()));
+    // Handle demo mode
+    if (params.get('demo') === 'true') {
+      console.log('Demo mode activated via URL parameter');
+      localStorage.setItem('demoMode', 'true');
+    }
     
-    // Handle errors from Xero callback
-    if (params.has('error')) {
+    // Handle success or error parameter for status feedback
+    if (params.get('success') === 'true') {
+      setStatusMessage('Successfully connected to Xero!');
+      // Refresh Xero status
+      dispatch(fetchXeroStatus());
+    } else if (params.get('error')) {
       const errorType = params.get('error');
-      const errorMessage = params.get('message');
-      console.error(`Xero error: ${errorType}`, errorMessage);
-      
-      // Set error state
-      let displayMessage = 'An error occurred while connecting to Xero.';
+      let errorMessage = 'Failed to connect to Xero';
       
       switch (errorType) {
         case 'no_code':
-          displayMessage = 'No authorization code was received from Xero.';
-          break;
-        case 'no_settings':
-          displayMessage = 'Application settings are missing. Please contact support.';
+          errorMessage = 'No authorization code received from Xero';
           break;
         case 'token_exchange_failed':
-          displayMessage = 'Failed to exchange authorization code for tokens.';
+          errorMessage = 'Failed to exchange authorization code for tokens';
           break;
         case 'tenant_fetch_failed':
-          displayMessage = 'Failed to retrieve your Xero organization information.';
+          errorMessage = 'Failed to fetch Xero organization details';
           break;
         case 'no_tenants':
-          displayMessage = 'No Xero organizations connected. Please ensure your Xero account has at least one organization.';
+          errorMessage = 'No Xero organizations were found linked to your account';
           break;
-        case 'server_error':
-          displayMessage = `Server error: ${errorMessage || 'Unknown error'}`;
+        case 'unauthorized_client':
+          errorMessage = 'The Xero app is not properly configured. Please contact support.';
           break;
         default:
-          displayMessage = `Connection error: ${errorMessage || errorType || 'Unknown error'}`;
+          errorMessage = `Connection to Xero failed: ${errorType}`;
       }
       
-      dispatch({ 
-        type: 'xero/fetchStatus/rejected', 
-        payload: displayMessage
-      });
-      
-      // Clean up error parameters
-      if (window.history && window.history.replaceState) {
-        const cleanUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, cleanUrl);
-        console.log('Cleaned URL parameters after handling error');
-      }
+      setStatusMessage(errorMessage);
     }
-    
-    if (params.has('demo') && params.get('demo') === 'true') {
-      console.log('Demo mode activated from URL parameter');
-      setIsDemoMode(true);
-      
-      // Simulate a successful Xero connection in demo mode
-      simulateDemoConnection();
-      
-      // Clean up URL parameters after processing them
-      // This prevents issues with refreshing the page and duplicate processing
-      if (window.history && window.history.replaceState) {
-        const cleanUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, cleanUrl);
-        console.log('Cleaned URL parameters after processing demo mode');
-      }
-    }
-    
-    // Also check for success parameter which might come from a redirect
-    if (params.has('success') && params.get('success') === 'true') {
-      console.log('Success parameter detected in URL, refreshing status');
-      dispatch(fetchXeroStatus());
-      
-      // Clean up success parameter
-      if (window.history && window.history.replaceState) {
-        const cleanUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, cleanUrl);
-        console.log('Cleaned URL parameters after processing success');
-      }
-    }
-  }, []);
-
-  // Function to simulate a successful Xero connection in demo mode
-  const simulateDemoConnection = async () => {
-    console.log('Starting demo connection simulation');
-    
-    // Initialize UI state immediately for better UX
-    setSyncStatus('loading');
-    setSyncMessage('Establishing demo connection...');
-    
-    try {
-      // First try with the API endpoint
-      console.log('Attempting to call demo-connect API endpoint');
-      const response = await api.post('/api/xero/demo-connect', {
-        demo: true
-      });
-      
-      console.log('API response from demo-connect:', response.data);
-      
-      if (response.data && response.data.success) {
-        // Update local state for immediate UI feedback
-        setSyncStatus('success');
-        setSyncMessage('Demo connection established successfully');
-        setLastSync(new Date().toISOString());
-        
-        // Refresh the Xero status to show as connected
-        dispatch(fetchXeroStatus());
-        
-        console.log('Successfully simulated Xero connection in demo mode via API');
-      } else {
-        console.error('API responded but without success flag');
-        // Instead of throwing, just handle it like other errors
-        fallbackToClientSideSimulation();
-      }
-    } catch (error) {
-      console.error('Error in demo mode connection via API:', error);
-      fallbackToClientSideSimulation();
-    }
-  };
-
-  // Extracted method to handle fallback simulation
-  const fallbackToClientSideSimulation = () => {
-    console.log('Falling back to client-side simulation');
-    // Even if the backend call fails, we can still simulate the connection in the UI
-    // This is just for demonstration purposes
-    
-    // Simulate a successful response without the API
-    const mockPayload = {
-      isAuthenticated: true,
-      tenantId: 'demo-tenant-id',
-      tenantName: 'Demo Company Ltd',
-      tokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
-    };
-    
-    // Set the mock data in the Redux store
-    console.log('Dispatching mock data to Redux:', mockPayload);
-    dispatch({ 
-      type: 'xero/fetchStatus/fulfilled', 
-      payload: mockPayload
-    });
-    
-    // Also update local state to force re-render
-    console.log('Updating local state for demo mode');
-    setIsDemoMode(true);
-    setLastSync(new Date().toISOString());
-    setSyncStatus('success');
-    setSyncMessage('Demo connection established successfully');
-  };
-
-  useEffect(() => {
-    // Fetch Xero connection status when the component mounts
-    dispatch(fetchXeroStatus());
-    
-    // Check for last sync time
-    const fetchLastSync = async () => {
-      try {
-        const response = await api.get<XeroLastSyncResponse>('/api/xero/last-sync');
-        if (response.data && response.data.lastSync) {
-          setLastSync(response.data.lastSync);
-        }
-      } catch (error) {
-        console.error('Failed to fetch last sync time:', error);
-      }
-    };
-    
-    fetchLastSync();
-  }, [dispatch]);
+  }, [location, dispatch]);
 
   const handleConnect = async () => {
-    console.log('Connect to Xero button clicked');
+    setIsConnecting(true);
     try {
-      console.log('Dispatching getXeroAuthUrl action');
-      setSyncStatus('loading');
-      setSyncMessage('Preparing to connect with Xero...');
-      
-      const result = await dispatch(getXeroAuthUrl()).unwrap();
-      console.log('Auth URL result:', result);
-      
-      // Check if we're in demo mode
-      if (result && result.isDemoMode) {
-        console.log('Demo mode detected. Simulating Xero connection...');
-        setIsDemoMode(true);
-        window.location.href = result.url;
-        return;
-      }
-      
-      if (result && result.url) {
-        console.log('Redirecting to Xero auth URL:', result.url);
-        // Redirect to Xero for authorization
-        window.location.href = result.url;
+      const resultAction = await dispatch(connectToXero());
+      if (connectToXero.fulfilled.match(resultAction)) {
+        const authUrl = resultAction.payload.authorizationUrl;
+        console.log('Redirecting to Xero:', authUrl);
+        window.location.href = authUrl;
       } else {
-        console.error('No URL returned from getXeroAuthUrl');
-        setSyncStatus('error');
-        setSyncMessage('Failed to get Xero authorization URL');
+        setStatusMessage('Failed to start Xero connection process');
+        console.error('Connection error:', resultAction.error);
       }
-    } catch (error: any) {
-      console.error('Failed to get Xero auth URL:', error);
-      setSyncStatus('error');
-      
-      // Check if this is a setup issue
-      if (error.setupNeeded) {
-        setSyncMessage(`Setup required: ${error.message || 'Please set up your Xero app credentials'}`);
-      } else {
-        setSyncMessage(error.message || 'Failed to connect to Xero');
-      }
+    } catch (error) {
+      console.error('Error connecting to Xero:', error);
+      setStatusMessage('Error connecting to Xero');
+    } finally {
+      setIsConnecting(false);
     }
   };
 
   const handleDisconnect = async () => {
     try {
-      await dispatch(disconnectXero()).unwrap();
+      await dispatch(disconnectXero());
+      setStatusMessage('Successfully disconnected from Xero');
     } catch (error) {
-      console.error('Failed to disconnect from Xero:', error);
-    }
-  };
-
-  const handleSyncNow = async () => {
-    setSyncStatus('loading');
-    setSyncMessage('Syncing with Xero...');
-    
-    try {
-      const response = await api.post('/api/xero/sync');
-      
-      if (response.data && response.data.success) {
-        setSyncStatus('success');
-        // @ts-ignore - Suppressing TypeScript error for message property
-        setSyncMessage(response.data.message || 'Sync completed successfully');
-        setLastSync(new Date().toISOString());
-      } else {
-        setSyncStatus('error');
-        setSyncMessage('Sync failed');
-      }
-    } catch (err) {
-      console.error('Sync failed:', err);
-      setSyncStatus('error');
-      
-      // Type-safe way to handle different error types
-      let errorMessage = 'Failed to sync with Xero';
-      
-      // @ts-ignore
-      if (err && typeof err === 'object' && 'message' in err) {
-        // @ts-ignore
-        errorMessage = err.message;
-      }
-      
-      setSyncMessage(errorMessage);
+      console.error('Error disconnecting Xero:', error);
+      setStatusMessage('Error disconnecting Xero');
     }
   };
 
   const renderConnectionStatus = () => {
-    if (status === 'loading') {
+    if (xeroState.loading) {
       return (
-        <Alert severity="info" icon={<CircularProgress size={20} />}>
-          <AlertTitle>Checking connection status...</AlertTitle>
-          Please wait while we verify your Xero connection.
-        </Alert>
+        <Box display="flex" alignItems="center">
+          <CircularProgress size={24} sx={{ mr: 2 }} />
+          <Typography>Checking connection status...</Typography>
+        </Box>
       );
     }
 
-    if (isAuthenticated) {
+    if (xeroState.connected) {
       return (
-        <Alert severity="success" icon={<CheckCircle />}>
-          <AlertTitle>Connected to Xero</AlertTitle>
-          Your account is connected to {tenantName || 'your Xero organization'}.
-          {tokenExpiry && (
-            <Typography variant="body2" sx={{ mt: 1 }}>
-              Token expires: {new Date(tokenExpiry).toLocaleString()}
-            </Typography>
-          )}
-        </Alert>
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Alert severity="success" sx={{ mb: 3 }}>
+              <AlertTitle>Connected to Xero</AlertTitle>
+              Your Reconciler account is now linked to your Xero organization{' '}
+              <strong>{xeroState.tenantName || 'Unknown'}</strong>
+            </Alert>
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            <Paper elevation={2} sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                <CustomIcon iconName="DescriptionOutlined" sx={{ mr: 1 }} /> 
+                Connection Details
+              </Typography>
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2">
+                  <strong>Organization:</strong> {xeroState.tenantName}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Connected:</strong> {new Date(xeroState.lastSync).toLocaleString()}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Status:</strong> Active
+                </Typography>
+              </Box>
+            </Paper>
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            <Paper elevation={2} sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+                <CustomIcon iconName="SyncOutlined" sx={{ mr: 1 }} />
+                Sync Status
+              </Typography>
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2">
+                  <strong>Last Sync:</strong> {xeroState.lastSync ? new Date(xeroState.lastSync).toLocaleString() : 'Never'}
+                </Typography>
+                <Typography variant="body2" gutterBottom>
+                  <strong>Next Sync:</strong> Automatic with new invoices
+                </Typography>
+                <Button 
+                  variant="outlined" 
+                  size="small" 
+                  sx={{ mt: 1 }}
+                  onClick={() => dispatch(fetchXeroStatus())}
+                >
+                  Refresh Status
+                </Button>
+              </Box>
+            </Paper>
+          </Grid>
+          
+          <Grid item xs={12}>
+            <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={handleDisconnect}
+                startIcon={<CustomIcon iconName="LinkOffOutlined" />}
+              >
+                Disconnect from Xero
+              </Button>
+            </Box>
+          </Grid>
+        </Grid>
       );
     }
 
     return (
-      <Alert severity="info">
-        <AlertTitle>Not Connected</AlertTitle>
-        Connect your Xero account to enable automatic invoice reconciliation and data synchronization.
-      </Alert>
-    );
-  };
-
-  const renderSetupGuide = () => {
-    if (isAuthenticated) {
-      return null;
-    }
-
-    return (
-      <Box sx={{ mt: 3, mb: 4 }}>
-        <Typography variant="h6" gutterBottom>
-          Setup Guide
-        </Typography>
-        <Alert severity="info" sx={{ mb: 2 }}>
-          <AlertTitle>Before connecting to Xero:</AlertTitle>
-          <Typography variant="body2">
-            You need to set up a Xero Developer app and configure your environment correctly.
-          </Typography>
+      <Box>
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <AlertTitle>Not Connected</AlertTitle>
+          Connect your Reconciler account to Xero to automatically sync invoices and payments.
         </Alert>
         
-        <Paper sx={{ p: 2 }}>
-          <Typography variant="subtitle1" fontWeight="bold">
-            Option 1: Use our setup utility (recommended)
+        <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
+          <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+            <CustomIcon iconName="InfoOutlined" sx={{ mr: 1 }} />
+            How It Works
           </Typography>
           <Typography variant="body2" paragraph>
-            The setup utility guides you through the process of setting up Xero integration:
+            When you connect to Xero, you'll be redirected to Xero's website to authorize access. 
+            Once authorized, we'll be able to:
           </Typography>
-          <ol>
-            <li>Go to your project directory in the terminal</li>
-            <li>Run <code>cd scripts</code></li>
-            <li>Run <code>node install-xero-setup.js</code> to install dependencies</li>
-            <li>Run <code>node setup-xero.js</code> to start the setup process</li>
-            <li>Follow the prompts and complete the authorization</li>
-            <li>Restart your application</li>
-          </ol>
+          <ul>
+            <li>
+              <Typography variant="body2">Import your invoices and bills from Xero</Typography>
+            </li>
+            <li>
+              <Typography variant="body2">Sync payment status between systems</Typography>
+            </li>
+            <li>
+              <Typography variant="body2">Update invoice classifications</Typography>
+            </li>
+          </ul>
+          <Typography variant="body2" sx={{ mt: 2 }}>
+            You can disconnect at any time from this page.
+          </Typography>
         </Paper>
         
-        <Paper sx={{ p: 2, mt: 2 }}>
-          <Typography variant="subtitle1" fontWeight="bold">
-            Option 2: Manual setup
-          </Typography>
-          <Typography variant="body2" paragraph>
-            If you prefer to set up manually:
-          </Typography>
-          <ol>
-            <li>Create a Xero Developer app at <a href="https://developer.xero.com/app/manage" target="_blank" rel="noopener noreferrer">Xero Developer Portal</a></li>
-            <li>Configure the redirect URI to <code>https://reconciler-march.onrender.com/api/xero/callback</code> (or <code>http://localhost:5001/api/xero/callback</code> for local development)</li>
-            <li>Create a <code>.env</code> file with your Xero credentials (XERO_CLIENT_ID, XERO_CLIENT_SECRET, XERO_REDIRECT_URI)</li>
-            <li>Restart your application</li>
-          </ol>
-        </Paper>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleConnect}
+            disabled={isConnecting}
+            startIcon={isConnecting ? <CircularProgress size={20} color="inherit" /> : <CustomIcon iconName="LinkOutlined" />}
+            size="large"
+            sx={{ px: 4, py: 1 }}
+          >
+            {isConnecting ? 'Connecting...' : 'Connect to Xero'}
+          </Button>
+        </Box>
       </Box>
     );
   };
 
-  // Xero Developer Credentials Form component
-  const XeroDeveloperCredentialsForm = () => {
-    const [clientId, setClientId] = useState('');
-    const [clientSecret, setClientSecret] = useState('');
-    const [redirectUri, setRedirectUri] = useState('');
-    const [isSaving, setIsSaving] = useState(false);
-    const [saveResult, setSaveResult] = useState<{ success: boolean, message: string } | null>(null);
-    
-    const handleSave = async () => {
-      setIsSaving(true);
-      setSaveResult(null);
-      
-      try {
-        const response = await api.post('/api/settings/update-xero-credentials', {
-          clientId,
-          clientSecret,
-          redirectUri
-        });
-        
-        console.log('Saved Xero credentials response:', response.data);
-        setSaveResult({
-          success: true,
-          message: 'Xero credentials saved successfully!'
-        });
-        
-        // Clear form after successful save
-        setClientId('');
-        setClientSecret('');
-      } catch (error: any) {
-        console.error('Error saving Xero credentials:', error);
-        setSaveResult({
-          success: false,
-          message: error.response?.data?.message || 'Failed to save Xero credentials'
-        });
-      } finally {
-        setIsSaving(false);
-      }
-    };
-    
-    const handleGenerateRedirectUri = () => {
-      // Generate a default redirect URI based on the current hostname
-      const isLocalhost = window.location.hostname === 'localhost';
-      const baseUrl = isLocalhost 
-        ? 'http://localhost:5001' 
-        : 'https://reconciler-march.onrender.com';
-      
-      setRedirectUri(`${baseUrl}/api/xero/callback`);
-    };
-    
-    return (
-      <Paper sx={{ p: 3, mb: 3, mt: 3 }}>
-        <Typography variant="h6" gutterBottom>
-          Xero Developer Credentials
-        </Typography>
-        
-        <Typography variant="body2" color="text.secondary" paragraph>
-          Enter your Xero app credentials to connect with the Xero API. You can create a Xero app at <Link href="https://developer.xero.com/app/manage" target="_blank" rel="noopener">Xero Developer Portal</Link>.
-        </Typography>
-        
-        <Box component="form" noValidate autoComplete="off" sx={{ mt: 2 }}>
-          <TextField
-            label="Client ID"
-            variant="outlined"
-            fullWidth
-            margin="normal"
-            value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
-            placeholder="Your Xero app client ID"
-            helperText="From your Xero app settings"
-          />
-          
-          <TextField
-            label="Client Secret"
-            variant="outlined"
-            fullWidth
-            margin="normal"
-            type="password"
-            value={clientSecret}
-            onChange={(e) => setClientSecret(e.target.value)}
-            placeholder="Your Xero app client secret"
-            helperText="From your Xero app settings"
-          />
-          
-          <TextField
-            label="Redirect URI"
-            variant="outlined"
-            fullWidth
-            margin="normal"
-            value={redirectUri}
-            onChange={(e) => setRedirectUri(e.target.value)}
-            placeholder="https://your-app-url.com/api/xero/callback"
-            helperText="Must match exactly with the URI in your Xero app settings"
-            InputProps={{
-              endAdornment: (
-                <Button 
-                  variant="text" 
-                  size="small" 
-                  onClick={handleGenerateRedirectUri}
-                  sx={{ minWidth: 'auto' }}
-                >
-                  Generate
-                </Button>
-              )
-            }}
-          />
-          
-          {saveResult && (
-            <Alert severity={saveResult.success ? 'success' : 'error'} sx={{ mt: 2 }}>
-              {saveResult.message}
-            </Alert>
-          )}
-          
-          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleSave}
-              disabled={isSaving || !clientId || !clientSecret || !redirectUri}
-            >
-              {isSaving ? <CircularProgress size={24} /> : 'Save Credentials'}
-            </Button>
-          </Box>
-        </Box>
-      </Paper>
-    );
-  };
-
   return (
-    <Container maxWidth="lg" sx={{ my: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Xero Integration
-      </Typography>
-      
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          <AlertTitle>Connection Error</AlertTitle>
-          {error}
-        </Alert>
-      )}
-      
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Paper sx={{ p: 3, mb: 3 }}>
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Connection Status
-              </Typography>
-              {renderConnectionStatus()}
-              
-              <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-                {isAuthenticated ? (
-                  <Button 
-                    variant="outlined" 
-                    color="error" 
-                    onClick={handleDisconnect}
-                    startIcon={<Error />}
-                  >
-                    Disconnect from Xero
-                  </Button>
-                ) : (
-                  <>
-                    <Button 
-                      variant="contained" 
-                      color="primary" 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        console.log('Button clicked directly');
-                        handleConnect();
-                      }}
-                      startIcon={<AccountBalance />}
-                      disabled={status === 'loading'}
-                      sx={{ mr: 2 }}
-                    >
-                      Connect to Xero
-                    </Button>
-                    <Button 
-                      variant="outlined" 
-                      color="secondary" 
-                      onClick={(e) => {
-                        e.preventDefault();
-                        console.log('Direct demo button clicked');
-                        simulateDemoConnection();
-                      }}
-                    >
-                      Demo Connection
-                    </Button>
-                  </>
-                )}
-              </Box>
-            </Box>
-            
-            {/* Render setup guide when not authenticated */}
-            {!isAuthenticated && renderSetupGuide()}
-          </Paper>
-        </Grid>
-        
-        {isAuthenticated && (
-          <>
-            <Grid item xs={12} md={6}>
-              <Card sx={{ height: '100%' }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Sync Status
-                  </Typography>
-                  
-                  {lastSync && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      Last synchronized: {new Date(lastSync).toLocaleString()}
-                    </Typography>
-                  )}
-                  
-                  {syncStatus === 'loading' && (
-                    <Alert severity="info" icon={<CircularProgress size={20} />}>
-                      {syncMessage}
-                    </Alert>
-                  )}
-                  
-                  {syncStatus === 'success' && (
-                    <Alert severity="success">
-                      {syncMessage}
-                    </Alert>
-                  )}
-                  
-                  {syncStatus === 'error' && (
-                    <Alert severity="error">
-                      {syncMessage}
-                    </Alert>
-                  )}
-                  
-                  <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-                    <Button 
-                      variant="contained" 
-                      color="secondary" 
-                      onClick={handleSyncNow}
-                      startIcon={<Sync />}
-                      disabled={syncStatus === 'loading'}
-                    >
-                      Sync Now
-                    </Button>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-            
-            <Grid item xs={12} md={6}>
-              <Card sx={{ height: '100%' }}>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Available Data
-                  </Typography>
-                  
-                  <List>
-                    <ListItem>
-                      <ListItemIcon>
-                        <Receipt />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary="Invoices" 
-                        secondary="Xero invoices can be imported and reconciled" 
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemIcon>
-                        <AccountBalance />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary="Bank Transactions" 
-                        secondary="Match invoices with bank transactions" 
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemIcon>
-                        <Schedule />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary="Scheduled Sync" 
-                        secondary="Data is automatically synchronized daily" 
-                      />
-                    </ListItem>
-                  </List>
-                </CardContent>
-              </Card>
-            </Grid>
-          </>
+    <Card>
+      <CardContent>
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h5" gutterBottom>
+            Xero Integration
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Connect your account to Xero for automatic invoice syncing
+          </Typography>
+        </Box>
+
+        {statusMessage && (
+          <Alert 
+            severity={statusMessage.includes('Success') ? 'success' : 'error'} 
+            sx={{ mb: 3 }}
+            onClose={() => setStatusMessage(null)}
+          >
+            {statusMessage}
+          </Alert>
         )}
-      </Grid>
-      
-      {!isAuthenticated && <XeroDeveloperCredentialsForm />}
-    </Container>
+
+        {renderConnectionStatus()}
+      </CardContent>
+    </Card>
   );
 };
 

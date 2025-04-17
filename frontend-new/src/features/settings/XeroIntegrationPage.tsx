@@ -139,7 +139,7 @@ const XeroIntegrationPage: React.FC = () => {
                   <strong>Organization:</strong> {xeroState.tenantName}
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Connected:</strong> {new Date(xeroState.lastSync).toLocaleString()}
+                  <strong>Connected:</strong> {xeroState.lastSync ? new Date(xeroState.lastSync).toLocaleString() : 'N/A'}
                 </Typography>
                 <Typography variant="body2">
                   <strong>Status:</strong> Active

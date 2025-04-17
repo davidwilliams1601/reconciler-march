@@ -345,7 +345,8 @@ api.interceptors.response.use(
           console.info('Using mock cost centers data');
           return Promise.resolve({ data: mockCostCenters });
         }
-      }\n    } else if (error.request) {
+      }
+    } else if (error.request) {
       // The request was made but no response was received
       console.error('API Error (No Response):', error.request);
       

@@ -23,15 +23,50 @@ let backendIsDown = false;
 // Function to check if backend is available
 const checkBackendAvailability = async () => {
   try {
+    console.log('Checking backend availability at:', `${getBaseUrl()}/health`);
+    
+    // First try with normal fetch
     const response = await fetch(`${getBaseUrl()}/health`, { 
-      method: 'HEAD',
-      mode: 'no-cors'
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      // Don't use no-cors as it doesn't provide useful status information
     });
-    backendIsDown = false;
-    console.log('Backend is available');
+    
+    console.log('Health check response:', response.status);
+    
+    if (response.ok) {
+      backendIsDown = false;
+      console.log('Backend is available - health check succeeded');
+    } else if (response.status === 404) {
+      // If health endpoint doesn't exist, try a different endpoint
+      console.log('Health endpoint not found, trying /api/status instead');
+      try {
+        const altResponse = await fetch(`${getBaseUrl()}/api/status`, { method: 'GET' });
+        if (altResponse.ok) {
+          backendIsDown = false;
+          console.log('Backend is available - alternative check succeeded');
+        } else {
+          backendIsDown = true;
+          console.log('Backend appears to be down or hibernating (status check failed)');
+        }
+      } catch (altError) {
+        backendIsDown = true;
+        console.log('Backend appears to be down (alternative check failed):', altError);
+      }
+    } else {
+      backendIsDown = true;
+      console.log(`Backend health check failed with status: ${response.status}`);
+    }
   } catch (error) {
     backendIsDown = true;
-    console.log('Backend appears to be down, enabling fallback mode');
+    console.log('Backend appears to be down, enabling fallback mode:', error);
+    
+    // In development, this is expected since there might not be a backend
+    if (process.env.NODE_ENV === 'development' || MOCK_MODE) {
+      console.log('Using mock data since we are in development/mock mode');
+    }
   }
 };
 
@@ -93,6 +128,7 @@ api.interceptors.response.use(
       console.error('API Error Response:', {
         status: error.response.status,
         statusText: error.response.statusText,
+        url: error.config.url,
         headers: error.response.headers,
         data: error.response.data,
       });
@@ -110,7 +146,38 @@ api.interceptors.response.use(
         
         const url = error.config.url;
         
-        // Return mock data based on the API endpoint
+        // Handle Xero API endpoints first as they're causing issues
+        if (url && url.includes('/api/xero/status')) {
+          console.info('Using mock Xero status data');
+          return Promise.resolve({ data: mockXeroIntegration.status });
+        }
+        
+        if (url && url.includes('/api/xero/auth-url')) {
+          console.info('Using mock Xero auth URL data');
+          return Promise.resolve({ data: mockXeroIntegration.authUrl });
+        }
+        
+        if (url && url.includes('/api/xero/invoices')) {
+          console.info('Using mock Xero invoices data');
+          return Promise.resolve({ data: mockXeroInvoices });
+        }
+        
+        if (url && url.includes('/api/xero/bank-transactions')) {
+          console.info('Using mock Xero bank transactions data');
+          return Promise.resolve({ data: mockXeroBankTransactions });
+        }
+        
+        if (url && url.includes('/api/xero/disconnect')) {
+          console.info('Using mock Xero disconnect response');
+          return Promise.resolve({ 
+            data: { 
+              success: true, 
+              message: 'Successfully disconnected from Xero (mock)' 
+            } 
+          });
+        }
+        
+        // Then handle other API endpoints
         if (url && url.includes('/api/invoices')) {
           console.info('Using mock invoice data');
           return Promise.resolve({ data: mockInvoices });
@@ -139,9 +206,8 @@ api.interceptors.response.use(
         if (url && url.includes('/api/cost-centers')) {
           console.info('Using mock cost centers data');
           return Promise.resolve({ data: mockCostCenters });
-        }
-      }
-    } else if (error.request) {
+        }}
+      } else if (error.request) {
       // The request was made but no response was received
       console.error('API Error (No Response):', error.request);
       

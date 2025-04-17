@@ -368,7 +368,8 @@ export const mockXeroIntegration = {
     lastSync: null
   },
   authUrl: {
-    url: '#',
+    url: 'https://login.xero.com/identity/connect/authorize?demo=true',
+    isDemoMode: true,
     message: 'Demo mode: This would redirect to Xero in production'
   }
 };

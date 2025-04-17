@@ -353,15 +353,23 @@ export const mockDashboardStats = {
   ]
 };
 
-// Mock data for Xero integration - REMOVED
+// Mock data for Xero integration
 export const mockXeroIntegration = {
   status: {
+    status: 'idle',
+    isAuthenticated: false,
     connected: false,
-    message: "Xero integration has been temporarily removed"
+    authUrl: null,
+    tenantId: null,
+    tenantName: null,
+    tokenExpiry: null,
+    error: null,
+    loading: false,
+    lastSync: null
   },
   authUrl: {
-    auth_url: '#',
-    message: 'Xero integration has been temporarily removed'
+    url: '#',
+    message: 'Demo mode: This would redirect to Xero in production'
   }
 };
 

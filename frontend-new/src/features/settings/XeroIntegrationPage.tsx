@@ -108,6 +108,16 @@ const XeroIntegrationPage: React.FC = () => {
   };
 
   const renderConnectionStatus = () => {
+    // Add defensive check for undefined xeroState
+    if (!xeroState) {
+      return (
+        <Box display="flex" alignItems="center">
+          <CircularProgress size={24} sx={{ mr: 2 }} />
+          <Typography>Loading Xero information...</Typography>
+        </Box>
+      );
+    }
+    
     if (xeroState.loading) {
       return (
         <Box display="flex" alignItems="center">

@@ -99,10 +99,10 @@ app.use((req, res, next) => {
     
     // Content Security Policy
     const csp = "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-        "style-src 'self' 'unsafe-inline' data:; " +
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com; " +
+        "style-src 'self' 'unsafe-inline' data: https://fonts.googleapis.com; " +
         "img-src 'self' data: blob:; " +
-        "font-src 'self' data: blob: https: https://fonts.gstatic.com https://fonts.googleapis.com; " +
+        "font-src 'self' data: blob: https: * https://fonts.gstatic.com https://fonts.googleapis.com; " +
         "connect-src 'self' http://localhost:5001 https://frontend-new-er0k.onrender.com https://*.onrender.com https://*.netlify.app;";
     
     console.log('\nCSP Header:');
@@ -144,6 +144,14 @@ app.use('/api/xero', xeroRoutes);
 // Test route
 app.get('/api/test', (req, res) => {
     res.json({ message: 'Server is working!' });
+});
+
+// Font test route - serves a test font to verify CSP
+app.get('/api/font-test', (req, res) => {
+    res.setHeader('Content-Type', 'application/font-woff2');
+    // This is a minimal valid WOFF2 font
+    const minimalFont = Buffer.from('d09GMgABAAAAAADcAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAj0AAAT+CGAAR2IAATIIBCAAATgQgAyABNgIkAwAEIAWDGgcgG5sEyKQGG38AOz5GQDeFZN++/d73IrNUKK8FVXcvQpBCyc6kTZ4R', 'base64');
+    res.send(minimalFont);
 });
 
 // Root route for health check

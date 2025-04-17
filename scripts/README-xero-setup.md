@@ -67,6 +67,19 @@ This utility helps you easily connect your application to the Xero API without h
 
 ## Troubleshooting
 
+### Font Loading & CSP Issues
+
+If you experience font loading or Content Security Policy (CSP) issues, the application includes a diagnostic page:
+
+1. Visit `/csp-test.html` in your browser (e.g., https://frontend-new-er0k.onrender.com/csp-test.html)
+2. This page will run tests on your CSP configuration and font loading capabilities
+3. Review the test results to identify any issues with your setup
+
+Common issues and solutions:
+- If fonts fail to load, ensure both your frontend and backend CSP configurations include proper font-src directives
+- If API connectivity fails, check your CORS configuration
+- If Google Fonts fail, make sure https://fonts.googleapis.com and https://fonts.gstatic.com are allowed in your CSP
+
 ### Connection Issues
 
 - **Redirect URI mismatch**: Ensure the redirect URI in your Xero Developer Portal exactly matches the one used in the setup utility.

@@ -34,7 +34,40 @@ console.log('%cChecking for CSP issues...', 'font-size: 14px; color: #ff9800;');
 try {
   // Create a test font element to check if fonts can load
   const testFont = new FontFace('TestFont', 'url("data:application/font-woff2;base64,d09GMgABAAAAAADcA")');
-  console.log('%cNo CSP font loading issues detected.', 'font-size: 12px; color: #4caf50;');
+  testFont.load().then(() => {
+    console.log('%cFont loaded successfully! CSP is configured properly.', 'font-size: 12px; color: #4caf50;');
+  }).catch(e => {
+    console.error('%cFont failed to load: ' + e.message, 'font-size: 12px; color: #f44336;');
+  });
+  
+  // Also check if we can fetch from the backend API
+  fetch('/api/test')
+    .then(response => {
+      if (response.ok) {
+        console.log('%cAPI connectivity test passed! CORS is configured properly.', 'font-size: 12px; color: #4caf50;');
+      } else {
+        console.error('%cAPI responded with error status: ' + response.status, 'font-size: 12px; color: #f44336;');
+      }
+    })
+    .catch(e => {
+      console.error('%cAPI connectivity test failed: ' + e.message, 'font-size: 12px; color: #f44336;');
+      console.log('%cThis may indicate CORS issues between frontend and backend.', 'font-size: 12px; color: #f44336;');
+    });
+    
+  // Test server font loading
+  const fontTestUrl = '/api/font-test';
+  console.log('%cTesting server font loading from: ' + fontTestUrl, 'font-size: 12px; color: #ff9800;');
+  
+  const serverTestFont = new FontFace('ServerTestFont', `url("${fontTestUrl}")`);
+  serverTestFont.load().then(() => {
+    console.log('%cServer font test successful! CSP is properly configured for cross-origin fonts.', 'font-size: 12px; color: #4caf50;');
+    document.fonts.add(serverTestFont);
+  }).catch(e => {
+    console.error('%cServer font test failed: ' + e.message, 'font-size: 12px; color: #f44336;');
+    console.log('%cThis indicates your CSP is blocking cross-origin font loading.', 'font-size: 12px; color: #f44336;');
+  });
+  
+  console.log('%cCSP checks initiated. See console for results.', 'font-size: 12px; color: #4caf50;');
 } catch (e) {
   console.error('%cCSP font loading issue detected: ' + e.message, 'font-size: 12px; color: #f44336;');
   console.log('%cIf you see font loading errors, try updating your Content-Security-Policy.', 'font-size: 12px; color: #f44336;');

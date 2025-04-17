@@ -121,12 +121,7 @@ router.get('/auth-url', async (req, res) => {
         // Get settings from database
         let settings = await Settings.findOne();
         
-        // Check for demo mode request in query parameters
-        const forceDemoMode = req.query.demo === 'true';
-        
-        // Create default settings if not found
         if (!settings) {
-            console.log('Xero settings not found, creating defaults');
             settings = new Settings({
                 organization: {
                     name: 'Reconciler Demo',
@@ -134,59 +129,45 @@ router.get('/auth-url', async (req, res) => {
                     defaultLanguage: 'en',
                     timezone: 'Europe/London',
                 },
-                xeroConfig: {
-                    clientId: process.env.XERO_CLIENT_ID || '',
-                    clientSecret: process.env.XERO_CLIENT_SECRET || '',
-                    redirectUri: process.env.NODE_ENV === 'production'
-                        ? process.env.XERO_REDIRECT_URI || 'https://reconciler-march.onrender.com/api/xero/callback'
-                        : process.env.XERO_REDIRECT_URI || 'http://localhost:5001/api/xero/callback',
-                    isConnected: false,
-                    isDemoMode: !process.env.XERO_CLIENT_ID && !process.env.XERO_CLIENT_SECRET
-                }
+                xeroConfig: {}
             });
             await settings.save();
-            console.log('Created default settings with Xero config');
         }
         
-        // Update settings with environment variables if they're blank but env vars exist
-        if ((!settings.xeroConfig.clientId || !settings.xeroConfig.clientSecret) && 
-            (process.env.XERO_CLIENT_ID && process.env.XERO_CLIENT_SECRET)) {
-            console.log('Updating Xero settings with environment variables');
-            settings.xeroConfig.clientId = process.env.XERO_CLIENT_ID;
-            settings.xeroConfig.clientSecret = process.env.XERO_CLIENT_SECRET;
-            settings.xeroConfig.redirectUri = process.env.NODE_ENV === 'production'
-                ? process.env.XERO_REDIRECT_URI || 'https://reconciler-march.onrender.com/api/xero/callback'
-                : process.env.XERO_REDIRECT_URI || 'http://localhost:5001/api/xero/callback';
-            settings.xeroConfig.isDemoMode = false;
-            await settings.save();
-            console.log('Updated Xero settings with environment variables');
-        }
+        // Force demo mode if query parameter is set
+        const forceDemoMode = req.query.demo === 'true';
         
-        // Log client ID only for debugging (don't log secret)
-        console.log('Xero client ID:', settings.xeroConfig.clientId ? 
-            settings.xeroConfig.clientId.substring(0, 5) + '...' : '(missing)');
+        // For direct Xero connection, we'll use app credentials from environment variables
+        const clientId = process.env.XERO_CLIENT_ID || '';
+        const clientSecret = process.env.XERO_CLIENT_SECRET || '';
         
-        console.log('Xero settings:', {
-            clientId: settings.xeroConfig.clientId ? 
-                settings.xeroConfig.clientId.substring(0, 5) + '...' : '(missing)',
-            clientSecret: settings.xeroConfig.clientSecret ? '(present)' : '(missing)',
-            redirectUri: settings.xeroConfig.redirectUri,
-            isDemoMode: settings.xeroConfig.isDemoMode
-        });
+        // Set the redirect URI based on environment
+        const redirectUri = process.env.NODE_ENV === 'production'
+            ? process.env.XERO_REDIRECT_URI || 'https://reconciler-march.onrender.com/api/xero/callback'
+            : process.env.XERO_REDIRECT_URI || 'http://localhost:5001/api/xero/callback';
+            
+        // For development/testing only: use built-in default Xero app credentials 
+        // Remove or change these in production
+        const defaultClientId = '4D89FB0E3FEE40B6A2EB58A757A87779';
+        const defaultClientSecret = 'nFrS3MFvxvHsrGz5gIVJVlPqViVoFYb-2Z5bYMeMxDwTZvgO';
         
-        // Check if demo mode is requested or if credentials are missing
+        // Use the provided credentials, or fall back to defaults if in development
+        const effectiveClientId = clientId || (process.env.NODE_ENV !== 'production' ? defaultClientId : '');
+        const effectiveClientSecret = clientSecret || (process.env.NODE_ENV !== 'production' ? defaultClientSecret : '');
+        
+        // Log credential usage (only show partial ID for security)
+        console.log('Using client ID:', effectiveClientId ? effectiveClientId.substring(0, 5) + '...' : '(none)');
+        console.log('Using redirect URI:', redirectUri);
+        
+        // Check if we should use demo mode
         const isDemoMode = forceDemoMode || 
-                         settings.xeroConfig.isDemoMode === true || 
-                         !settings.xeroConfig.clientId || 
-                         !settings.xeroConfig.clientSecret || 
-                         !settings.xeroConfig.redirectUri ||
-                         settings.xeroConfig.clientId === 'YOUR_XERO_CLIENT_ID' ||
-                         settings.xeroConfig.clientSecret === 'YOUR_XERO_CLIENT_SECRET';
-        
-        // Generate a demo URL if in demo mode or credentials are missing
+                         !effectiveClientId || 
+                         !effectiveClientSecret ||
+                         !redirectUri;
+                         
+        // If in demo mode, return a demo URL
         if (isDemoMode) {
             console.log('Using demo mode for auth URL');
-            // Create a demo URL that redirects back to the application with demo=true
             const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
             const demoRedirectUrl = `${frontendUrl}/settings/xero?demo=true&success=true`;
             
@@ -197,49 +178,23 @@ router.get('/auth-url', async (req, res) => {
             });
         }
         
-        // If we get here, we have actual credentials, so create a real auth URL
-        console.log('Generating real Xero authorization URL');
-        console.log('Generating Xero auth URL with redirect URI:', settings.xeroConfig.redirectUri);
-
-        // Verify that client ID and client secret are actually present
-        if (!settings.xeroConfig.clientId || settings.xeroConfig.clientId.trim() === '') {
-            return res.status(400).json({
-                error: 'Missing Xero Client ID',
-                message: 'Please set up your Xero app and provide a valid Client ID',
-                setupNeeded: true
-            });
-        }
-
-        if (!settings.xeroConfig.clientSecret || settings.xeroConfig.clientSecret.trim() === '') {
-            return res.status(400).json({
-                error: 'Missing Xero Client Secret',
-                message: 'Please set up your Xero app and provide a valid Client Secret',
-                setupNeeded: true
-            });
-        }
-
-        // Check redirect URI is valid
-        if (!settings.xeroConfig.redirectUri || !settings.xeroConfig.redirectUri.includes('/api/xero/callback')) {
-            return res.status(400).json({
-                error: 'Invalid Redirect URI',
-                message: 'The redirect URI must end with /api/xero/callback',
-                setupNeeded: true
-            });
-        }
-
+        // Generate an authorization URL using the app credentials
+        console.log('Generating Xero authorization URL with redirect URI:', redirectUri);
+        
         const authUrl = `https://login.xero.com/identity/connect/authorize?` +
             `response_type=code` +
-            `&client_id=${settings.xeroConfig.clientId}` +
-            `&redirect_uri=${encodeURIComponent(settings.xeroConfig.redirectUri)}` +
+            `&client_id=${effectiveClientId}` +
+            `&redirect_uri=${encodeURIComponent(redirectUri)}` +
             `&scope=${encodeURIComponent(XERO_SCOPES)}` +
             `&state=${generateState()}`;
-
-        console.log('Generated auth URL:', authUrl);
-        res.json({ url: authUrl });
+            
+        console.log('Generated Xero auth URL successfully');
+        
+        return res.json({ url: authUrl });
     } catch (error) {
         console.error('Error in /auth-url endpoint:', error);
         
-        // Even in case of error, provide a demo URL
+        // Even in case of error, provide a demo URL as fallback
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
         const demoRedirectUrl = `${frontendUrl}/settings/xero?demo=true&success=true`;
         
@@ -453,48 +408,48 @@ router.get('/callback', async (req, res) => {
     }
 
     try {
-        // Get settings
-        const settings = await Settings.findOne();
-        if (!settings) {
-            console.error('No settings found in database');
-            return res.redirect(`${getFrontendURL()}/settings/xero?error=no_settings`);
-        }
+        // For direct Xero connection, we'll use app credentials from environment variables
+        // or fall back to development defaults for testing
+        const defaultClientId = '4D89FB0E3FEE40B6A2EB58A757A87779';
+        const defaultClientSecret = 'nFrS3MFvxvHsrGz5gIVJVlPqViVoFYb-2Z5bYMeMxDwTZvgO';
+        
+        const clientId = process.env.XERO_CLIENT_ID || (process.env.NODE_ENV !== 'production' ? defaultClientId : '');
+        const clientSecret = process.env.XERO_CLIENT_SECRET || (process.env.NODE_ENV !== 'production' ? defaultClientSecret : '');
+        
+        // Set the redirect URI based on environment
+        const redirectUri = process.env.NODE_ENV === 'production'
+            ? process.env.XERO_REDIRECT_URI || 'https://reconciler-march.onrender.com/api/xero/callback'
+            : process.env.XERO_REDIRECT_URI || 'http://localhost:5001/api/xero/callback';
+            
+        console.log('Using client ID for token exchange:', clientId ? clientId.substring(0, 5) + '...' : '(none)');
+        console.log('Using redirect URI for token exchange:', redirectUri);
 
-        console.log('Exchanging code for tokens with redirect URI:', settings.xeroConfig.redirectUri);
-
+        console.log('Exchanging code for tokens...');
         // Exchange the authorization code for tokens
         const tokenResponse = await fetch('https://identity.xero.com/connect/token', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'Authorization': 'Basic ' + Buffer.from(
-                    `${settings.xeroConfig.clientId}:${settings.xeroConfig.clientSecret}`
-                ).toString('base64')
+                'Authorization': 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
             },
             body: new URLSearchParams({
                 grant_type: 'authorization_code',
                 code,
-                redirect_uri: settings.xeroConfig.redirectUri
+                redirect_uri: redirectUri
             })
         });
 
-        const tokenResponseText = await tokenResponse.text();
-        
-        // Log response for debugging - be careful not to log actual tokens in production
-        console.log('Token response status:', tokenResponse.status);
-        console.log('Token response headers:', tokenResponse.headers);
-        console.log('Token response text length:', tokenResponseText.length);
-        
         if (!tokenResponse.ok) {
-            console.error('Xero token exchange failed:', tokenResponseText);
+            const errorText = await tokenResponse.text();
+            console.error('Xero token exchange failed:', errorText);
             return res.redirect(`${getFrontendURL()}/settings/xero?error=token_exchange_failed&status=${tokenResponse.status}`);
         }
 
-        const tokens = JSON.parse(tokenResponseText);
+        const tokens = await tokenResponse.json();
         console.log('Successfully received Xero tokens');
         
-        // Get tenant connections
-        console.log('Fetching connected Xero tenants');
+        // Get tenant connections 
+        console.log('Fetching Xero tenants...');
         const connectionsResponse = await fetch('https://api.xero.com/connections', {
             headers: {
                 'Authorization': `Bearer ${tokens.access_token}`,
@@ -503,12 +458,11 @@ router.get('/callback', async (req, res) => {
         });
         
         if (!connectionsResponse.ok) {
-            console.error('Failed to fetch Xero tenants:', await connectionsResponse.text());
+            console.error('Failed to fetch Xero tenants');
             return res.redirect(`${getFrontendURL()}/settings/xero?error=tenant_fetch_failed`);
         }
         
         const connections = await connectionsResponse.json();
-        console.log('Connections response:', connections);
         
         if (!connections || connections.length === 0) {
             console.error('No tenants connected to this Xero app');
@@ -516,19 +470,42 @@ router.get('/callback', async (req, res) => {
         }
         
         const tenant = connections[0]; // Use first tenant
+        console.log('Found Xero tenant:', tenant.tenantName);
 
-        // Store the tokens securely
-        settings.xeroConfig.accessToken = tokens.access_token;
-        settings.xeroConfig.refreshToken = tokens.refresh_token;
-        settings.xeroConfig.tokenExpiry = new Date(Date.now() + (tokens.expires_in * 1000));
-        settings.xeroConfig.isConnected = true;
-        settings.xeroConfig.tenantId = tenant.tenantId;
-        settings.xeroConfig.tenantName = tenant.tenantName;
+        // Find or create settings record
+        console.log('Saving credentials to database...');
+        let settings = await Settings.findOne();
+        
+        if (!settings) {
+            settings = new Settings({
+                organization: {
+                    name: 'Reconciler',
+                    defaultCurrency: 'GBP',
+                    defaultLanguage: 'en',
+                    timezone: 'Europe/London',
+                },
+                xeroConfig: {}
+            });
+        }
+
+        // Store the connection details
+        settings.xeroConfig = {
+            clientId, // Save the client ID used for authentication
+            clientSecret, // Save the client secret used for authentication
+            redirectUri, // Save the redirect URI used for authentication
+            accessToken: tokens.access_token,
+            refreshToken: tokens.refresh_token,
+            tokenExpiry: new Date(Date.now() + (tokens.expires_in * 1000)),
+            tenantId: tenant.tenantId,
+            tenantName: tenant.tenantName,
+            isConnected: true,
+            lastSync: new Date()
+        };
         
         await settings.save();
-        console.log('Saved Xero connection info to database');
+        console.log('Xero credentials saved to database successfully');
 
-        // Redirect back to the settings page
+        // Redirect back to the settings page with success
         res.redirect(`${getFrontendURL()}/settings/xero?success=true`);
     } catch (error) {
         console.error('Error in Xero callback:', error);

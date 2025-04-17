@@ -33,7 +33,7 @@ import {
   Tab,
   useTheme,
   Link,
-  TabPanel
+
 } from '@mui/material';
 import { AccountCircle, Business, Category, Settings as SettingsIcon, Person, Email, AccountBalance } from '@mui/icons-material';
 import { Link as RouterLink, Routes, Route, useLocation } from 'react-router-dom';
@@ -883,6 +883,33 @@ const XeroDeveloperCredentialsForm = () => {
         </Box>
       </Box>
     </Paper>
+  );
+};
+
+// Custom TabPanel component (Material-UI doesn't export this)
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: any;
+  value: any;
+}
+
+const TabPanel = (props: TabPanelProps) => {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`tabpanel-${index}`}
+      aria-labelledby={`tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ p: 3 }}>
+          {children}
+        </Box>
+      )}
+    </div>
   );
 };
 

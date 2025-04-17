@@ -1,27 +1,50 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import api from '../../services/api';
+import { RootState } from '../../app/store';
 
-// Define the shape of our Xero state
+// Define a more comprehensive Xero state interface
 export interface XeroState {
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   isAuthenticated: boolean;
+  connected: boolean;
   authUrl: string | null;
   tenantId: string | null;
   tenantName: string | null;
   tokenExpiry: string | null;
   error: string | null;
+  loading: boolean;
+  lastSync: string | null;
 }
 
 // Initial state
 const initialState: XeroState = {
   status: 'idle',
   isAuthenticated: false,
+  connected: false,
   authUrl: null,
   tenantId: null,
   tenantName: null,
   tokenExpiry: null,
   error: null,
+  loading: false,
+  lastSync: null,
 };
+
+// New async thunk for the connect to Xero action
+export const connectToXero = createAsyncThunk(
+  'xero/connect',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/api/xero/auth-url');
+      if (response.data && response.data.url) {
+        return { authorizationUrl: response.data.url };
+      }
+      return rejectWithValue('Failed to get Xero authorization URL');
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to connect to Xero');
+    }
+  }
+);
 
 // Async thunks
 export const fetchXeroStatus = createAsyncThunk(
@@ -121,55 +144,83 @@ const xeroSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Connect to Xero
+      .addCase(connectToXero.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(connectToXero.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(connectToXero.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string || 'Failed to connect to Xero';
+      })
+    
       // Fetch Status
       .addCase(fetchXeroStatus.pending, (state) => {
         state.status = 'loading';
+        state.loading = true;
         state.error = null;
       })
       .addCase(fetchXeroStatus.fulfilled, (state, action) => {
         state.status = 'succeeded';
+        state.loading = false;
         state.isAuthenticated = action.payload.isAuthenticated || false;
+        state.connected = action.payload.isAuthenticated || false;
         state.tenantId = action.payload.tenantId || null;
         state.tenantName = action.payload.tenantName || null;
         state.tokenExpiry = action.payload.tokenExpiry || null;
+        state.lastSync = action.payload.lastSync || null;
       })
       .addCase(fetchXeroStatus.rejected, (state, action) => {
         state.status = 'failed';
+        state.loading = false;
         state.error = action.payload as string || 'Failed to fetch Xero status';
       })
       
       // Get Auth URL
       .addCase(getXeroAuthUrl.pending, (state) => {
         state.status = 'loading';
+        state.loading = true;
         state.error = null;
       })
       .addCase(getXeroAuthUrl.fulfilled, (state, action) => {
         state.status = 'succeeded';
+        state.loading = false;
         state.authUrl = action.payload.url || null;
       })
       .addCase(getXeroAuthUrl.rejected, (state, action) => {
         state.status = 'failed';
+        state.loading = false;
         state.error = action.payload as string || 'Failed to get Xero auth URL';
       })
       
       // Disconnect
       .addCase(disconnectXero.pending, (state) => {
         state.status = 'loading';
+        state.loading = true;
         state.error = null;
       })
       .addCase(disconnectXero.fulfilled, (state) => {
         state.status = 'succeeded';
+        state.loading = false;
         state.isAuthenticated = false;
+        state.connected = false;
         state.tenantId = null;
         state.tenantName = null;
         state.tokenExpiry = null;
       })
       .addCase(disconnectXero.rejected, (state, action) => {
         state.status = 'failed';
+        state.loading = false;
         state.error = action.payload as string || 'Failed to disconnect from Xero';
       });
   },
 });
+
+// Define selector to get the Xero state
+export const selectXero = (state: RootState) => state.xero;
 
 export const { resetXeroStatus } = xeroSlice.actions;
 export default xeroSlice.reducer; 
